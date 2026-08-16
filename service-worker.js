@@ -4,7 +4,7 @@
 // requests (ad scripts, affiliate/support widgets) — those must always be
 // fetched live, never cached, so they stay current and consent-aware.
 
-const CACHE_VERSION = 'ancient-games-v2';
+const CACHE_VERSION = 'ancient-games-v3';
 
 const PRECACHE_URLS = [
   './',
@@ -12,6 +12,7 @@ const PRECACHE_URLS = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './og-banner.png',
   './senet.html',
   './royal_game_of_ur.html',
   './ludus_latrunculorum.html',
