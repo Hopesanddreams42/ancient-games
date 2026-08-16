@@ -187,7 +187,14 @@
      item — so it doesn't affect the games' own column layout. It's
      pinned to the grid's own bottom-right corner, which lines up with
      the bottom of whichever card ends up in the last row (currently
-     Puluc's) and the right edge of the grid above it. */
+     Puluc's) and the right edge of the grid above it.
+
+     Its width has to match how many columns the grid actually lands on,
+     or it overlaps the card to its left. With .wrap's 1080px/20px-padding
+     and the grid's 300px/22px track sizing: 3 columns need >=984px
+     viewport, 2 columns need >=662px, below that it's 1 column. The
+     three width rules below (this one, plus the two in the media
+     queries further down) match those three cases. */
   .kofi-card{
     position:absolute; bottom:0; right:0; width:min(480px, 100%);
     background:var(--hub-bg-elev); border:1px solid var(--hub-line); border-radius:var(--hub-radius);
@@ -202,12 +209,19 @@
   }
   .kofi-btn:hover{ filter:brightness(1.12); }
 
+  /* Two-column range (roughly tablets and phones in landscape): the box
+     must be no wider than a single column, or it overlaps Puluc's card
+     in the column to its left. */
+  @media (min-width:662px) and (max-width:983px){
+    .kofi-card{ width:calc(50% - 11px); }
+  }
+
   /* ---------- Footer ---------- */
   footer{ padding:40px 0 60px; text-align:center; }
   footer p{ font-family:'Inter',sans-serif; font-size:12px; color:var(--hub-ink-faint); }
   footer a{ color:var(--hub-ink-faint); }
 
-  @media (max-width:640px){
+  @media (max-width:661px){
     .hero{ padding:44px 0 30px; }
     .grid{ grid-template-columns:1fr; }
     .kofi-card{ position:static; width:auto; margin:22px 0 0; }
