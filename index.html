@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seven Ancient Games — Play the Games History Left Behind</title>
+<meta name="description" content="Seven board games rebuilt from tombs, sagas, and stone floors — Senet, the Royal Game of Ur, Ludus Latrunculorum, Hnefatafl, Oware, Nine Men's Morris, and Puluc. Free to play, no installs.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#17140F">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --hub-bg:#17140F;
+    --hub-bg-elev:#221E17;
+    --hub-bg-elev2:#2B261D;
+    --hub-ink:#EDE3D0;
+    --hub-ink-dim:#B7AA92;
+    --hub-ink-faint:#8A7F6B;
+    --hub-brass:#B08D57;
+    --hub-brass-bright:#D4AF71;
+    --hub-verdigris:#6E8B7A;
+    --hub-line:rgba(176,141,87,0.28);
+    --hub-radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, rgba(176,141,87,0.08), transparent 60%),
+      var(--hub-bg);
+    color:var(--hub-ink);
+    font-family:'Crimson Text', Georgia, serif;
+    line-height:1.6;
+  }
+  h1,h2,h3,.eyebrow{ font-family:'Cinzel', Georgia, serif; letter-spacing:0.04em; }
+  button, .btn{ font-family:'Inter', sans-serif; }
+  a{ color:var(--hub-brass-bright); }
+  :focus-visible{ outline:2px solid var(--hub-brass-bright); outline-offset:3px; }
+
+  @media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  .wrap{ max-width:1080px; margin:0 auto; padding:0 20px; }
+
+  /* ---------- Hero ---------- */
+  .hero{ padding:64px 0 40px; text-align:center; }
+  .hero .eyebrow{
+    display:inline-block; font-size:12px; font-weight:600; letter-spacing:0.22em;
+    text-transform:uppercase; color:var(--hub-brass); margin-bottom:18px;
+  }
+  .hero .eyebrow::before, .hero .eyebrow::after{ content:"◆"; color:var(--hub-brass); margin:0 10px; font-size:8px; vertical-align:middle; }
+  .hero h1{
+    font-size:clamp(34px,6vw,58px); font-weight:800; margin:0 0 18px; color:var(--hub-ink);
+  }
+  .hero p.lede{
+    max-width:640px; margin:0 auto; font-size:19px; color:var(--hub-ink-dim); font-style:italic;
+  }
+
+  /* ---------- Ad slot (museum "reserved" placard styling) ---------- */
+  .ad-slot{
+    /* Hidden for now — the reserved divs stay in the markup below with
+       their data-ad-size attributes intact, ready for ads.js to fill in
+       once a network is wired up. Remove this line to show the empty
+       placeholder placards again. */
+    display:none;
+    margin:34px auto; border:1px dashed var(--hub-line); border-radius:8px;
+    align-items:center; justify-content:center;
+    color:var(--hub-ink-faint); font-family:'Inter',sans-serif; font-size:11px;
+    letter-spacing:0.12em; text-transform:uppercase;
+  }
+  .ad-slot--leaderboard{ max-width:728px; min-height:90px; }
+  .ad-slot--incontent{ max-width:300px; min-height:250px; }
+  .ad-slot span{ opacity:0.7; }
+
+  /* ---------- Timeline ---------- */
+  .timeline-section{ padding:20px 0 10px; }
+  .timeline-section h2{
+    text-align:center; font-size:15px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--hub-brass-bright); margin:0 0 6px;
+  }
+  .timeline-caption{
+    text-align:center; color:var(--hub-ink-faint); font-size:14px; font-style:italic; margin:0 0 46px;
+  }
+  .timeline-scroll{ overflow-x:auto; padding:20px 8px 10px; }
+  .timeline{
+    position:relative; min-width:760px; height:150px; margin:0 auto;
+  }
+  .timeline::before{
+    content:""; position:absolute; left:0; right:0; top:50%; height:2px;
+    background:linear-gradient(90deg, transparent, var(--hub-brass) 6%, var(--hub-brass) 94%, transparent);
+    transform:translateY(-1px);
+  }
+  .tl-row{ position:relative; height:100%; display:flex; justify-content:space-between; }
+  .tl-stop{ position:relative; width:1px; display:flex; align-items:center; justify-content:center; }
+  .tl-dot{
+    width:12px; height:12px; border-radius:50%; background:var(--game-accent, var(--hub-brass));
+    border:2px solid var(--hub-bg); box-shadow:0 0 0 1px var(--hub-line); position:relative; z-index:2;
+  }
+  .tl-label{
+    position:absolute; left:50%; transform:translateX(-50%); width:120px; text-align:center;
+    font-family:'Inter',sans-serif;
+  }
+  .tl-stop.above .tl-label{ bottom:calc(50% + 16px); }
+  .tl-stop.below .tl-label{ top:calc(50% + 16px); }
+  /* First and last stops sit at the very edge of the track, so a centered
+     label would spill off-screen and get clipped — anchor those two to the
+     dot instead of centering them. */
+  .tl-stop.tl-first .tl-label{ left:0; transform:translateX(0); text-align:left; }
+  .tl-stop.tl-last .tl-label{ left:auto; right:0; transform:translateX(0); text-align:right; }
+  .tl-name{ display:block; font-size:12.5px; font-weight:600; color:var(--hub-ink); }
+  .tl-year{ display:block; font-size:11px; color:var(--hub-ink-faint); margin-top:2px; }
+  .tl-tick{
+    position:absolute; left:50%; width:1px; background:var(--hub-line); transform:translateX(-50%);
+  }
+  .tl-stop.above .tl-tick{ bottom:50%; height:16px; }
+  .tl-stop.below .tl-tick{ top:50%; height:16px; }
+  .timeline-note{
+    text-align:center; font-size:12.5px; color:var(--hub-ink-faint); font-family:'Inter',sans-serif;
+    margin:8px 0 0;
+  }
+
+  /* ---------- Game grid ---------- */
+  .grid-section{ padding:36px 0 10px; }
+  .grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px;
+  }
+  .card{
+    background:var(--hub-bg-elev); border:1px solid var(--hub-line); border-radius:var(--hub-radius);
+    border-left:3px solid var(--game-accent, var(--hub-brass));
+    padding:24px 24px 20px; display:flex; flex-direction:column;
+  }
+  .card .era{
+    font-family:'Inter',sans-serif; font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--game-accent, var(--hub-brass-bright)); margin-bottom:8px;
+  }
+  .card h3{ margin:0 0 12px; font-size:22px; color:var(--hub-ink); }
+  .card p{ margin:0 0 18px; font-size:15.5px; color:var(--hub-ink-dim); flex:1; }
+  .card-footer{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    margin-top:auto; padding-top:14px; border-top:1px solid var(--hub-line);
+  }
+  .card .affiliate-link{
+    /* Hidden until real retailer links are ready — the <a> tags themselves
+       stay in the markup below with their data-affiliate-slot attributes
+       intact. Delete this line (or add `display:inline` per link) to
+       switch them back on once each href points somewhere real. */
+    display:none;
+    font-family:'Inter',sans-serif; font-size:12px; color:var(--hub-ink-faint); text-decoration:none;
+  }
+  .card .affiliate-link:hover{ color:var(--hub-verdigris); }
+  .play-btn{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:14px; letter-spacing:0.02em;
+    color:var(--hub-bg); background:var(--game-accent, var(--hub-brass-bright));
+    border:none; border-radius:6px; padding:10px 18px; text-decoration:none; white-space:nowrap;
+    transition:filter 0.15s ease; margin-left:auto;
+  }
+  .play-btn:hover{ filter:brightness(1.12); }
+
+  /* ---------- Support section ---------- */
+  .support-section{ padding:54px 0 20px; text-align:center; }
+  .support-card{
+    background:var(--hub-bg-elev); border:1px solid var(--hub-line); border-radius:var(--hub-radius);
+    max-width:560px; margin:0 auto; padding:32px 28px;
+  }
+  .support-card h2{ font-size:20px; margin:0 0 10px; color:var(--hub-ink); }
+  .support-card p{ color:var(--hub-ink-dim); font-size:15px; margin:0 0 20px; }
+  .kofi-btn{
+    display:inline-flex; align-items:center; gap:8px; font-family:'Inter',sans-serif; font-weight:600;
+    font-size:14px; color:var(--hub-bg); background:var(--hub-verdigris); border:none; border-radius:6px;
+    padding:11px 22px; text-decoration:none; transition:filter 0.15s ease;
+  }
+  .kofi-btn:hover{ filter:brightness(1.12); }
+  .support-note{
+    font-family:'Inter',sans-serif; font-size:11.5px; color:var(--hub-ink-faint); margin-top:14px;
+  }
+
+  /* ---------- Footer ---------- */
+  footer{ padding:40px 0 60px; text-align:center; }
+  footer p{ font-family:'Inter',sans-serif; font-size:12px; color:var(--hub-ink-faint); }
+  footer a{ color:var(--hub-ink-faint); }
+
+  @media (max-width:640px){
+    .hero{ padding:44px 0 30px; }
+    .grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+
+  <section class="hero">
+    <span class="eyebrow">Seven Boards, Five Continents, Five Thousand Years</span>
+    <h1>Board Games From History</h1>
+    <p class="lede">
+      Long before chess, before Monopoly, before your phone — people crowded round a board, threw
+      dice carved from bone or corn, and tried to outwit each other. These games are rebuilt
+      from tomb paintings, royal burials, sagas, and stone floors worn smooth by ancient hands.
+      Play them right now, against a friend or a very determined opponent.
+    </p>
+  </section>
+
+  <!-- Ad slot: leaderboard, below hero. Empty until a network is wired up in ads.js. -->
+  <div class="ad-slot ad-slot--leaderboard" data-ad-size="728x90" aria-hidden="true"><span>Reserved space</span></div>
+
+  <section class="timeline-section">
+    <h2>Five Millennia, One Line</h2>
+    <p class="timeline-caption">Not to scale — some of these gaps span longer than recorded history itself.</p>
+    <div class="timeline-scroll">
+      <div class="timeline">
+        <div class="tl-row">
+
+          <div class="tl-stop above tl-first" style="--game-accent:#4FA89B;">
+            <div class="tl-tick"></div>
+            <div class="tl-label"><span class="tl-name">Senet</span><span class="tl-year">c. 3100 BCE</span></div>
+            <div class="tl-dot"></div>
+          </div>
+
+          <div class="tl-stop below" style="--game-accent:#3B6DA8;">
+            <div class="tl-tick"></div>
+            <div class="tl-dot"></div>
+            <div class="tl-label"><span class="tl-name">Royal Game of Ur</span><span class="tl-year">c. 2600 BCE</span></div>
+          </div>
+
+          <div class="tl-stop above" style="--game-accent:#9A3E3E;">
+            <div class="tl-tick"></div>
+            <div class="tl-label"><span class="tl-name">Ludus Latrunculorum</span><span class="tl-year">by 1st c. BCE</span></div>
+            <div class="tl-dot"></div>
+          </div>
+
+          <div class="tl-stop below" style="--game-accent:#8C8171;">
+            <div class="tl-tick"></div>
+            <div class="tl-dot"></div>
+            <div class="tl-label"><span class="tl-name">Nine Men's Morris</span><span class="tl-year">by 1st c. CE</span></div>
+          </div>
+
+          <div class="tl-stop above" style="--game-accent:#5B7185;">
+            <div class="tl-tick"></div>
+            <div class="tl-label"><span class="tl-name">Hnefatafl</span><span class="tl-year">5th c. CE on</span></div>
+            <div class="tl-dot"></div>
+          </div>
+
+          <div class="tl-stop below" style="--game-accent:#C9863D;">
+            <div class="tl-tick"></div>
+            <div class="tl-dot"></div>
+            <div class="tl-label"><span class="tl-name">Oware</span><span class="tl-year">by 6th–7th c. CE</span></div>
+          </div>
+
+          <div class="tl-stop above tl-last" style="--game-accent:#4F8A5E;">
+            <div class="tl-tick"></div>
+            <div class="tl-label"><span class="tl-name">Puluc</span><span class="tl-year">undated — played today</span></div>
+            <div class="tl-dot"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-section">
+    <div class="grid">
+
+      <article class="card" style="--game-accent:#4FA89B;">
+        <div class="era">Ancient Egypt · c. 3100 BCE</div>
+        <h3>Senet</h3>
+        <p>
+          The oldest board game ever found — older than the pyramids. Egyptians played it for fun,
+          then for their souls: by the New Kingdom it had become a symbolic journey through the
+          afterlife, and a board was buried with Tutankhamun to help him find his way. Its race down
+          a track of squares is the direct ancestor of nearly every roll-and-move game since.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="senet">A real senet set ↗</a>
+          <a class="play-btn" href="senet.html">Play Senet</a>
+        </div>
+      </article>
+
+      <article class="card" style="--game-accent:#3B6DA8;">
+        <div class="era">Sumer, Mesopotamia · c. 2600 BCE</div>
+        <h3>The Royal Game of Ur</h3>
+        <p>
+          Buried in royal tombs and dug up in the 1920s, this game sat unsolved for sixty years —
+          nobody knew the rules until Irving Finkel of the British Museum translated a 2,000-year-old
+          Babylonian tablet in 1980, finally spelling them out. Rosette squares, safe lanes, pyramid dice:
+          play it and you're using rules a Babylonian scribe wrote down for an already-ancient game.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="ur">A real Ur set ↗</a>
+          <a class="play-btn" href="royal_game_of_ur.html">Play the Royal Game of Ur</a>
+        </div>
+      </article>
+
+      <article class="card" style="--game-accent:#9A3E3E;">
+        <div class="era">Rome · by the 1st century BCE</div>
+        <h3>Ludus Latrunculorum</h3>
+        <p>
+          "The game of little soldiers" — or more bluntly, brigands. Ovid recommended it as proof of
+          a cultured mind; Martial admired players skilled enough to win with a handful of glass
+          counters. Legionaries carried it the length of the empire, and its capture-by-surrounding
+          rule is the direct ancestor of the Viking tafl games.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="latrunculorum">A real Roman-style set ↗</a>
+          <a class="play-btn" href="ludus_latrunculorum.html">Play Ludus Latrunculorum</a>
+        </div>
+      </article>
+
+      <article class="card" style="--game-accent:#8C8171;">
+        <div class="era">Widely diffused · attested by the 1st century CE</div>
+        <h3>Nine Men's Morris</h3>
+        <p>
+          Scratched into Bronze Age stone in Ireland, into the ruins of Troy, and carved into the
+          steps of a Sri Lankan monastery under King Mahadithika Maha-Naga. Ovid describes it in the
+          Ars Amatoria. Unusually for a game this old, it was never forgotten — played under one name
+          or another, more or less continuously, right up to today's pub tables.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="nmm">A real morris board ↗</a>
+          <a class="play-btn" href="nine_mens_morris.html">Play Nine Men's Morris</a>
+        </div>
+      </article>
+
+      <article class="card" style="--game-accent:#5B7185;">
+        <div class="era">Viking Scandinavia · 5th century CE onward</div>
+        <h3>Hnefatafl</h3>
+        <p>
+          "The king's table" — a siege game where one side defends a king trying to break out, and
+          the other tries to trap him. Icelandic sagas describe gods and kings playing it. No complete
+          rulebook survived, so this version is stitched together from archaeology and from a related
+          Sámi game, tablut, whose rules the naturalist Carl Linnaeus recorded in 1732.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="hnefatafl">A real hnefatafl set ↗</a>
+          <a class="play-btn" href="hnefatafl.html">Play Hnefatafl</a>
+        </div>
+      </article>
+
+      <article class="card" style="--game-accent:#C9863D;">
+        <div class="era">West Africa · evidenced by the 6th–7th century CE</div>
+        <h3>Oware</h3>
+        <p>
+          A sowing-and-capturing game from the Akan peoples of Ghana and Côte d'Ivoire, part of the
+          vast mancala family played across Africa and Asia. Unlike some games here, Oware's rules
+          were never lost — it's been played continuously for centuries and is still fiercely
+          competitive today, with strong players calculating ten moves ahead, chess-grandmaster style.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="oware">A real Oware board ↗</a>
+          <a class="play-btn" href="oware.html">Play Oware</a>
+        </div>
+      </article>
+
+      <article class="card" style="--game-accent:#4F8A5E;">
+        <div class="era">Maya lowlands · undated, still played today</div>
+        <h3>Puluc</h3>
+        <p>
+          A "running fight" where captured soldiers aren't removed but taken prisoner — marched along
+          by their captor until they're rescued or killed. Spanish chroniclers barely mention it;
+          almost everything we know comes from Mopan and Kekchi Maya communities in Belize and
+          Guatemala who still play it now. This version follows R.C. Bell's 1960 reconstruction.
+        </p>
+        <div class="card-footer">
+          <a class="affiliate-link" href="#" data-affiliate-slot="puluc">A real Maya-style set ↗</a>
+          <a class="play-btn" href="bul.html">Play Puluc</a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- Ad slot: in-content, between the collection and the support section. -->
+  <div class="ad-slot ad-slot--incontent" data-ad-size="300x250" aria-hidden="true"><span>Reserved space</span></div>
+
+  <section class="support-section">
+    <div class="support-card">
+      <h2>Keep the Collection Growing</h2>
+      <p>
+        Every game here is free, ad-light by choice, and built to work offline once you've loaded it.
+        If you'd like to help keep it that way — or fund the next reconstruction — a tip goes a long way.
+      </p>
+      <a class="kofi-btn" href="https://ko-fi.com/stephen42" target="_blank" rel="noopener" data-support-provider="ko-fi">☕ Support on Ko-fi</a>
+    </div>
+  </section>
+
+  <!-- Ad slot: footer leaderboard. -->
+  <div class="ad-slot ad-slot--leaderboard" data-ad-size="728x90" aria-hidden="true"><span>Reserved space</span></div>
+
+  <footer>
+    <p>Reconstructions of games nobody left a full rulebook for. Play offline once installed.</p>
+  </footer>
+
+</main>
+
+<script src="ads.js" defer></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {
+        // Offline/installable support just won't be available this session — the games
+        // themselves still work fine without it.
+      });
+    });
+  }
+</script>
+
+</body>
+</html>

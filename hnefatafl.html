@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Hnefatafl — The King's Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=IM+Fell+English+SC&family=Marcellus&display=swap" rel="stylesheet">
+<script>
+  // Apply the saved theme before first paint to avoid a flash of the wrong palette.
+  (function(){
+    try{
+      var t = localStorage.getItem('hnef_theme');
+      if(t){
+        var el = document.getElementById('hnef-app');
+        if(el) el.classList.add('hnef-theme-' + JSON.parse(t));
+      }
+    }catch(e){}
+  })();
+</script>
+<style>
+  /* =========================================================
+     FUTURE-PROOFING NOTES (for later combination with other games):
+     - Every class and element ID in this file is prefixed "hnef-".
+     - All theme variables are scoped under .hnef-app (not :root/html),
+       so they cannot leak into or collide with another game's theme.
+     - All JS is wrapped in a single IIFE; the only global it creates
+       is one namespace object, window.HNEF, used solely for the
+       onclick="HNEF.xxx()" handlers below. Everything else (state,
+       render, helper functions) stays private to the closure.
+     - localStorage keys are prefixed "hnef_".
+     ========================================================= */
+
+  .hnef-app{
+    --hnef-void:#120b06; --hnef-void-2:#1c130b;
+    --hnef-wood-dark:#2a1c12; --hnef-wood-mid:#3a2818; --hnef-wood-light:#4a331e;
+    --hnef-parchment:#e8dcc3; --hnef-parchment-dim:#c9bb9c;
+    --hnef-brass:#b8863b; --hnef-brass-bright:#d9a84f;
+    --hnef-iron:#232227; --hnef-iron-hi:#4a4850;
+    --hnef-bone:#ede3c8; --hnef-bone-hi:#fffaee;
+    --hnef-king-gold:#d4af37;
+    --hnef-oxblood:#7a2323; --hnef-oxblood-deep:#4a1414;
+    --hnef-throne-a:#5c3a17;
+    --hnef-panel-bg: linear-gradient(160deg, #241811, #1a1109);
+    --hnef-line:#4a331e; --hnef-line-2:#3a281a;
+    --hnef-frame-1:#5a3d22; --hnef-frame-2:#2a1c12; --hnef-frame-3:#1a1109;
+    --hnef-input-bg:#1a1109;
+    --hnef-radius: 6px;
+  }
+    .hnef-app.hnef-theme-manuscript{
+    --hnef-void:#efe6cf; --hnef-void-2:#e6d9b8;
+    --hnef-wood-dark:#cdbb8c; --hnef-wood-mid:#ddcfa4; --hnef-wood-light:#e9ddb9;
+    --hnef-parchment:#241a0f; --hnef-parchment-dim:#5c4a30;
+    --hnef-brass:#9c3b2e; --hnef-brass-bright:#c24b36;
+    --hnef-iron:#2c2620; --hnef-iron-hi:#4a4136;
+    --hnef-bone:#f9f1da; --hnef-bone-hi:#fffcf1;
+    --hnef-king-gold:#b8912f;
+    --hnef-oxblood:#7a1f1f; --hnef-oxblood-deep:#4a1414;
+    --hnef-throne-a:#8a6a34;
+    --hnef-panel-bg: linear-gradient(160deg, #f4ead0, #e9d9ae);
+    --hnef-line:#a6905f; --hnef-line-2:#8a7248;
+    --hnef-frame-1:#8a6a34; --hnef-frame-2:#5c4423; --hnef-frame-3:#3a2b16;
+    --hnef-input-bg:#f4ead0;
+  }
+  .hnef-app.hnef-theme-runestone{
+    --hnef-void:#0d1114; --hnef-void-2:#161c20;
+    --hnef-wood-dark:#232b30; --hnef-wood-mid:#2e383e; --hnef-wood-light:#3a464d;
+    --hnef-parchment:#dfe6e6; --hnef-parchment-dim:#a9b6b8;
+    --hnef-brass:#5c8f86; --hnef-brass-bright:#7fb3a8;
+    --hnef-iron:#1b1e22; --hnef-iron-hi:#3e444b;
+    --hnef-bone:#e4ded0; --hnef-bone-hi:#f6f2e6;
+    --hnef-king-gold:#c9a24a;
+    --hnef-oxblood:#5c2a2a; --hnef-oxblood-deep:#3a1a1a;
+    --hnef-throne-a:#3f4a44;
+    --hnef-panel-bg: linear-gradient(160deg, #1a2126, #10151a);
+    --hnef-line:#3a464d; --hnef-line-2:#2e383e;
+    --hnef-frame-1:#4a5860; --hnef-frame-2:#232b30; --hnef-frame-3:#161c20;
+    --hnef-input-bg:#10151a;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%;}
+  .hnef-app{
+    background:
+      radial-gradient(ellipse at 20% -10%, var(--hnef-void-2) 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 110%, var(--hnef-void-2) 0%, transparent 55%),
+      var(--hnef-void);
+    color:var(--hnef-parchment);
+    font-family:'Crimson Text', Georgia, serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    transition:background .25s ease, color .25s ease;
+  }
+  h1,h2,h3,.hnef-display{ font-family:'Cinzel', Georgia, serif; letter-spacing:0.04em; }
+  button{ font-family:'Inter', sans-serif; cursor:pointer; }
+  ::selection{ background:var(--hnef-brass); color:var(--hnef-void); }
+
+  /* ---------- layout shell ---------- */
+  .hnef-wrap{ width:100%; max-width:1180px; padding:18px 16px 40px; }
+  .hnef-screen{ display:none; }
+  .hnef-screen.hnef-active{ display:block; }
+
+  /* ---------- top brand bar ---------- */
+  .hnef-brand{ display:flex; align-items:center; justify-content:center; gap:14px; padding:10px 0 22px; }
+  .hnef-brand .hnef-rune{ font-size:22px; color:var(--hnef-brass); opacity:0.85; }
+  .hnef-brand h1{
+    font-size:clamp(26px,4vw,40px); margin:0; color:var(--hnef-parchment);
+    text-shadow:0 2px 0 rgba(0,0,0,0.4), 0 0 22px rgba(184,134,59,0.2);
+    text-transform:uppercase;
+  }
+  .hnef-app.hnef-theme-manuscript .hnef-brand h1{ font-family:'IM Fell English SC', Georgia, serif; letter-spacing:0.03em; }
+  .hnef-app.hnef-theme-runestone .hnef-brand h1{ font-family:'Marcellus', Georgia, serif; letter-spacing:0.1em; }
+  .hnef-brand .hnef-sub{
+    display:block; font-family:'Crimson Text',serif; font-style:italic;
+    font-size:14px; color:var(--hnef-parchment-dim); letter-spacing:0.02em; text-align:center; margin-top:2px;
+  }
+
+  /* ---------- start screen ---------- */
+  .hnef-start-wrap{ text-align:center; }
+  .hnef-mode-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:28px auto 30px; max-width:920px; }
+  .hnef-mode-card{
+    display:flex; flex-direction:column;
+    background:var(--hnef-panel-bg); border:1px solid var(--hnef-line); border-radius:var(--hnef-radius);
+    padding:24px 18px 20px; text-align:left; position:relative; overflow:hidden;
+    transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .hnef-mode-card:hover{ transform:translateY(-3px); border-color:var(--hnef-brass); box-shadow:0 10px 24px rgba(0,0,0,0.28); }
+  .hnef-mode-card .hnef-glyph{ font-size:28px; color:var(--hnef-brass-bright); margin-bottom:10px; display:block; }
+  .hnef-mode-card h3{ margin:0 0 8px; font-size:18px; color:var(--hnef-bone-hi); }
+  .hnef-mode-card p{ margin:0; font-size:14.5px; color:var(--hnef-parchment-dim); line-height:1.45; }
+  .hnef-mode-card button.hnef-go{
+    margin-top:auto; width:100%; padding:9px 10px; background:transparent;
+    border:1px solid var(--hnef-brass); color:var(--hnef-brass-bright); border-radius:4px;
+    font-size:13px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase;
+    transition:background .15s ease, color .15s ease;
+  }
+  .hnef-mode-card button.hnef-go:hover{ background:var(--hnef-brass); color:var(--hnef-void); }
+
+  .hnef-theme-picker{ margin-bottom:26px; }
+  .hnef-theme-row{ display:flex; gap:16px; justify-content:space-between; align-items:stretch; flex-wrap:wrap; max-width:920px; margin:0 auto; }
+  .hnef-row-group{ display:flex; gap:10px; flex-wrap:wrap; }
+  .hnef-swatch-icon{ position:relative; background:var(--hnef-frame-2); }
+  .hnef-swatch-icon svg{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:block; }
+  .hnef-theme-swatch{
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    background:var(--hnef-panel-bg); border:1px solid var(--hnef-line); border-radius:6px;
+    padding:10px 14px; color:var(--hnef-parchment-dim); font-size:12.5px;
+    width:120px; text-align:center;
+  }
+  .hnef-theme-swatch.hnef-selected{ border-color:var(--hnef-brass-bright); color:var(--hnef-bone-hi); box-shadow:0 0 0 1px var(--hnef-brass-bright) inset; }
+  .hnef-swatch-preview{ width:64px; height:30px; border-radius:4px; display:block; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.3); }
+  .hnef-preview-oak{ background:linear-gradient(135deg,#2a1c12,#b8863b); }
+  .hnef-preview-manuscript{ background:linear-gradient(135deg,#e9ddb9,#9c3b2e); }
+  .hnef-preview-runestone{ background:linear-gradient(135deg,#232b30,#7fb3a8); }
+
+  .hnef-history-blurb{
+    max-width:920px; margin:0 auto 30px; padding:20px 26px; background:var(--hnef-panel-bg);
+    border:1px solid var(--hnef-line-2); border-radius:var(--hnef-radius);
+  }
+  .hnef-history-blurb h4{ font-size:18px; letter-spacing:0.1em; text-transform:uppercase; color:var(--hnef-bone-hi); margin:0 0 10px; text-align:center; }
+  .hnef-history-blurb p{ font-family:'Crimson Text',serif; font-size:15.5px; line-height:1.65; color:var(--hnef-parchment-dim); text-align:center; margin:0; }
+
+  /* ---------- setup screen ---------- */
+  .hnef-setup-wrap{ max-width:640px; margin:0 auto; text-align:center; }
+  .hnef-setup-wrap h2{ font-size:20px; color:var(--hnef-bone-hi); margin-bottom:4px; }
+  .hnef-setup-wrap .hnef-hint{ color:var(--hnef-parchment-dim); font-size:14px; margin-bottom:18px; }
+  .hnef-choice-row{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:26px; }
+  .hnef-choice-row.hnef-three{ grid-template-columns:repeat(3,1fr); }
+  .hnef-choice-row.hnef-four{ grid-template-columns:repeat(4,1fr); }
+  .hnef-choice-btn{
+    background:var(--hnef-panel-bg); border:1px solid var(--hnef-line); color:var(--hnef-parchment);
+    border-radius:var(--hnef-radius); padding:16px 10px; font-size:15px; font-family:'Inter',sans-serif;
+    display:flex; flex-direction:column; align-items:center; gap:6px;
+  }
+  .hnef-choice-btn .hnef-swatch{ width:26px; height:26px; border-radius:50%; }
+  .hnef-choice-btn.hnef-selected{ border-color:var(--hnef-brass-bright); box-shadow:0 0 0 2px rgba(184,134,59,0.35) inset; }
+  .hnef-choice-btn:hover{ border-color:var(--hnef-brass); }
+  .hnef-setup-actions{ display:flex; justify-content:center; gap:12px; }
+  .hnef-btn-primary{
+    background:linear-gradient(180deg, var(--hnef-brass-bright), var(--hnef-brass));
+    border:none; color:#170f08; font-weight:700; padding:11px 26px; border-radius:5px;
+    font-size:14px; letter-spacing:0.04em; text-transform:uppercase;
+  }
+  .hnef-btn-primary:disabled{ opacity:0.35; cursor:not-allowed; }
+  .hnef-btn-ghost{
+    background:transparent; border:1px solid var(--hnef-line); color:var(--hnef-parchment-dim);
+    padding:11px 20px; border-radius:5px; font-size:14px;
+  }
+  .hnef-btn-ghost:hover{ border-color:var(--hnef-brass); color:var(--hnef-brass-bright); }
+  .hnef-btn-ghost:disabled{ opacity:0.3; cursor:not-allowed; }
+
+  /* ---------- game screen ---------- */
+  .hnef-game-topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 14px; background:var(--hnef-panel-bg); border:1px solid var(--hnef-line-2); border-radius:var(--hnef-radius);
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .hnef-turn-pill{
+    display:flex; align-items:center; gap:8px; padding:6px 14px; border-radius:20px;
+    background:var(--hnef-input-bg); border:1px solid var(--hnef-line); font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600;
+  }
+  .hnef-turn-dot{ width:11px; height:11px; border-radius:50%; }
+  .hnef-turn-dot.attacker{ background:var(--hnef-iron-hi); box-shadow:0 0 8px rgba(0,0,0,0.6);}
+  .hnef-turn-dot.defender{ background:var(--hnef-bone); box-shadow:0 0 8px rgba(237,227,200,0.5);}
+  .hnef-tally{ display:flex; gap:14px; font-family:'Inter',sans-serif; font-size:12.5px; color:var(--hnef-parchment-dim); }
+  .hnef-tally b{ color:var(--hnef-bone-hi); }
+  .hnef-topbar-btns{ display:flex; gap:8px; }
+  .hnef-icon-btn{
+    background:transparent; border:1px solid var(--hnef-line); color:var(--hnef-parchment-dim);
+    padding:7px 12px; border-radius:5px; font-size:12.5px; font-family:'Inter',sans-serif;
+  }
+  .hnef-icon-btn:hover{ border-color:var(--hnef-brass); color:var(--hnef-brass-bright); }
+
+  .hnef-game-layout{ display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:20px; align-items:start; }
+
+  /* board */
+  .hnef-board-wrap{ display:flex; justify-content:center; }
+  .hnef-board-frame{ position:relative; width:min(78vw, 620px); aspect-ratio:1/1; }
+  .hnef-board-frame-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .hnef-board{
+    display:grid; grid-template-columns:repeat(11, 1fr); grid-template-rows:repeat(11, 1fr);
+    position:absolute; inset:15%;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  }
+  .hnef-cell{ position:relative; display:flex; align-items:center; justify-content:center; border:1px solid rgba(0,0,0,0.18); }
+  .hnef-sq-a{ background:var(--hnef-wood-mid); }
+  .hnef-sq-b{ background:var(--hnef-wood-dark); }
+  .hnef-sq-a, .hnef-sq-b{ background-image: repeating-linear-gradient(90deg, rgba(0,0,0,0.05) 0px, transparent 2px, transparent 5px); }
+  .hnef-sq-mark{ position:absolute; inset:14%; pointer-events:none; }
+  .hnef-sq-mark svg{ width:100%; height:100%; }
+  .hnef-cell.hnef-selected{ box-shadow: inset 0 0 0 3px var(--hnef-brass-bright); }
+  .hnef-cell.hnef-last-from{ box-shadow: inset 0 0 0 2px rgba(184,134,59,0.55); }
+  .hnef-cell.hnef-last-to{ box-shadow: inset 0 0 0 2px rgba(184,134,59,0.9); }
+  .hnef-cell.hnef-legal-move::after{
+    content:""; position:absolute; width:24%; height:24%; border-radius:50%;
+    background:rgba(184,134,59,0.55); box-shadow:0 0 8px rgba(184,134,59,0.6);
+  }
+  .hnef-cell.hnef-legal-move:hover{ background-color:rgba(184,134,59,0.12); }
+  .hnef-cell.hnef-hint-from{ box-shadow: inset 0 0 0 3px var(--hnef-king-gold); }
+  .hnef-cell.hnef-hint-to{ box-shadow: inset 0 0 0 3px var(--hnef-king-gold); background-color:rgba(212,175,55,0.16); }
+  .hnef-cell.hnef-hint-from::before{
+    content:"★"; position:absolute; top:2px; left:3px; font-size:10px; color:var(--hnef-king-gold); z-index:3;
+  }
+  .hnef-cell.hnef-clickable{ cursor:pointer; }
+
+  .hnef-piece{
+    width:78%; height:78%; border-radius:50%; position:relative; z-index:2;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.5), inset 0 2px 3px rgba(255,255,255,0.15), inset 0 -3px 5px rgba(0,0,0,0.35);
+  }
+  .hnef-piece-attacker{ background:radial-gradient(circle at 35% 30%, var(--hnef-iron-hi), var(--hnef-iron) 70%); border:1px solid rgba(0,0,0,0.55); }
+  .hnef-piece-defender{ background:radial-gradient(circle at 35% 30%, var(--hnef-bone-hi), var(--hnef-bone) 75%); border:1px solid rgba(0,0,0,0.2); }
+  .hnef-piece-king{
+    background:radial-gradient(circle at 35% 30%, #f3d878, var(--hnef-king-gold) 70%);
+    border:1px solid rgba(0,0,0,0.4); width:86%; height:86%;
+  }
+  .hnef-piece-king::after{ content:"♔"; font-size:15px; color:#4a3410; }
+
+  /* side panel */
+  .hnef-panel{ background:var(--hnef-panel-bg); border:1px solid var(--hnef-line-2); border-radius:var(--hnef-radius); padding:16px; font-family:'Inter',sans-serif; }
+  .hnef-panel h4{ margin:0 0 10px; font-family:'Cinzel',serif; font-size:13px; letter-spacing:0.08em; color:var(--hnef-brass-bright); text-transform:uppercase; }
+  .hnef-status-box{ font-size:14px; color:var(--hnef-parchment); line-height:1.5; min-height:40px; }
+  .hnef-status-box.hnef-thinking{ color:var(--hnef-parchment-dim); font-style:italic; }
+  .hnef-panel .hnef-divider{ height:1px; background:var(--hnef-line-2); margin:14px 0; }
+  .hnef-legend{ font-size:12px; color:var(--hnef-parchment-dim); line-height:1.9; }
+  .hnef-legend .hnef-lk{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .hnef-hint-text{ font-size:13px; color:var(--hnef-parchment-dim); margin-top:9px; line-height:1.5; min-height:16px; }
+
+  .hnef-demo-caption{ font-size:14.5px; line-height:1.55; color:var(--hnef-bone-hi); font-family:'Crimson Text',serif; }
+  .hnef-demo-caption .hnef-who{ color:var(--hnef-brass-bright); font-weight:600; font-family:'Inter',sans-serif; font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:4px; }
+  .hnef-demo-controls{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .hnef-demo-btn-row{ display:flex; gap:8px; }
+  .hnef-demo-btn-row .hnef-btn-ghost, .hnef-demo-btn-row .hnef-btn-primary{ flex:1; padding:10px 8px; }
+  .hnef-demo-progress{ font-size:11.5px; color:var(--hnef-parchment-dim); margin-top:8px; }
+
+  /* modal */
+  .hnef-modal-overlay{
+    position:fixed; inset:0; background:rgba(8,5,2,0.72); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:50; padding:20px;
+  }
+  .hnef-modal-overlay.hnef-active{ display:flex; }
+  .hnef-modal{
+    background:var(--hnef-panel-bg); border:1px solid var(--hnef-line); border-radius:8px;
+    max-width:700px; width:100%; max-height:85vh; overflow-y:auto; padding:32px 34px 26px;
+    box-shadow:0 30px 60px rgba(0,0,0,0.5);
+  }
+  .hnef-modal h2{ margin:0 0 8px; font-size:34px !important; color:var(--hnef-brass-bright); }
+  .hnef-modal .hnef-modal-sub{ font-size:19px !important; color:var(--hnef-parchment-dim); font-style:italic; margin-bottom:22px; font-family:'Crimson Text',serif; }
+  .hnef-modal ol{ padding-left:26px; margin:0; }
+  .hnef-modal li{ margin-bottom:20px; line-height:1.5; font-size:30px !important; }
+  .hnef-modal li b{ color:var(--hnef-brass-bright); }
+  .hnef-modal-close-row{ text-align:right; margin-top:18px; }
+
+  .hnef-winner-modal{ text-align:center; max-width:420px; }
+  .hnef-winner-modal .hnef-crest{ font-size:38px; margin-bottom:6px; }
+  .hnef-winner-modal h2{ font-size:24px; margin-bottom:6px; }
+  .hnef-winner-modal p{ color:var(--hnef-parchment-dim); font-size:15px; margin-bottom:18px; }
+  .hnef-winner-actions{ display:flex; gap:10px; justify-content:center; }
+
+  .hnef-score-input{
+    width:100%; padding:10px 12px; border-radius:5px; border:1px solid var(--hnef-line);
+    background:var(--hnef-input-bg); color:var(--hnef-parchment); font-family:'Inter',sans-serif; font-size:14px; margin-bottom:8px;
+  }
+  .hnef-save-score-label{ font-size:12px; color:var(--hnef-parchment-dim); margin-bottom:10px; }
+  .hnef-saved-msg{ font-size:13.5px; color:var(--hnef-brass-bright); margin-bottom:14px; display:none; }
+
+  .hnef-hs-table{ width:100%; border-collapse:collapse; font-family:'Inter',sans-serif; font-size:26px !important; margin-top:10px; }
+  .hnef-hs-table th{ text-align:left; color:var(--hnef-brass-bright); font-size:16px !important; text-transform:uppercase; letter-spacing:0.05em; padding:12px 10px; border-bottom:1px solid var(--hnef-line); }
+  .hnef-hs-table td{ padding:14px 10px; border-bottom:1px solid var(--hnef-line-2); color:var(--hnef-parchment); }
+  .hnef-hs-table tr:last-child td{ border-bottom:none; }
+  .hnef-hs-table tr.hnef-hs-you td{ background:rgba(212,175,55,0.14); color:var(--hnef-brass-bright); font-weight:600; }
+  .hnef-hs-table tr.hnef-hs-gap td{ text-align:center; color:var(--hnef-parchment-dim); letter-spacing:0.3em; padding:6px 10px; border-bottom:none; }
+
+  @media (max-width: 800px){
+    .hnef-game-layout{ grid-template-columns:1fr; }
+    .hnef-board-frame{ width:min(92vw, 520px); }
+    .hnef-mode-grid{ grid-template-columns:1fr; }
+    .hnef-choice-row.hnef-three{ grid-template-columns:1fr 1fr 1fr; }
+    .hnef-choice-row.hnef-four{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width: 460px){
+    .hnef-choice-row.hnef-three{ grid-template-columns:1fr; }
+    .hnef-choice-row.hnef-four{ grid-template-columns:1fr; }
+    .hnef-game-topbar{ flex-direction:column; align-items:flex-start; }
+  }
+
+  /* -- short landscape phones: keep board and panel side by side instead of
+     stacking, and size the board off available height rather than width -- */
+  @media (max-width: 800px) and (orientation: landscape){
+    .hnef-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
+    .hnef-board-wrap{ align-items:center; }
+    .hnef-board-frame{ width:auto; height:min(82vh, 460px); }
+    .hnef-panel{ max-height:82vh; overflow-y:auto; padding:12px; }
+    .hnef-mode-grid{ grid-template-columns:repeat(3,1fr); }
+  }
+
+  button:focus-visible, .hnef-cell:focus-visible{ outline:2px solid var(--hnef-brass-bright); outline-offset:2px; }
+</style>
+</head>
+<body>
+<div class="hnef-app" id="hnef-app">
+
+<div class="hnef-wrap">
+  <div class="hnef-brand">
+    <span class="hnef-rune">ᛟ</span>
+    <div>
+      <h1>Hnefatafl</h1>
+      <span class="hnef-sub">the Viking king's table</span>
+    </div>
+    <span class="hnef-rune">ᛟ</span>
+  </div>
+
+  <!-- START SCREEN -->
+  <div class="hnef-screen hnef-active" id="hnef-screen-start">
+    <div class="hnef-start-wrap">
+      <div class="hnef-history-blurb">
+        <h4>A Brief History</h4>
+        <p>
+          Hnefatafl — literally "king's table" — is a Norse strategy game that spread across Scandinavia and the
+          Viking-settled British Isles from roughly the 5th century onward, and appears in Icelandic sagas as a
+          favourite pastime of gods and kings alike. Archaeologists have found boards and pieces from Ireland to
+          Norway to Sweden, but no complete rulebook survived the game's decline after chess arrived in Europe
+          around the 11th–12th centuries. The version played here — "Copenhagen Hnefatafl" — is a modern scholarly
+          reconstruction, pieced together from those archaeological finds and from related surviving games, such
+          as the Sámi game tablut, whose rules were recorded by the naturalist Carl Linnaeus in 1732.
+        </p>
+      </div>
+      <div class="hnef-mode-grid">
+        <div class="hnef-mode-card">
+          <span class="hnef-glyph">⚔</span>
+          <h3>Two Players</h3>
+          <p>Share the board. Attackers and defenders take turns on the same screen.</p>
+          <button class="hnef-go" onclick="HNEF.startTwoPlayer()">Play</button>
+        </div>
+        <div class="hnef-mode-card">
+          <span class="hnef-glyph">♔</span>
+          <h3>Vs. Computer</h3>
+          <p>Choose your side and a difficulty — Easy, Medium, or Hard — and face the AI.</p>
+          <button class="hnef-go" onclick="HNEF.showScreen('hnef-screen-setup')">Play</button>
+        </div>
+        <div class="hnef-mode-card">
+          <span class="hnef-glyph">ᛒ</span>
+          <h3>Demonstration</h3>
+          <p>Step through a guided opening at your own pace, then take over the board yourself.</p>
+          <button class="hnef-go" onclick="HNEF.startDemo()">Watch</button>
+        </div>
+      </div>
+
+      <div class="hnef-theme-picker">
+        <div class="hnef-theme-row" id="hnef-theme-row">
+          <div class="hnef-row-group">
+            <button class="hnef-theme-swatch" onclick="HNEF.openInstructions()">
+              <span class="hnef-swatch-preview hnef-swatch-icon">
+                <svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M3,2 C7,0 10,0.5 13,3 C16,0.5 19,0 23,2 L23,17 C19,15 16,15.5 13,18 C10,15.5 7,15 3,17 Z" fill="none" stroke="var(--hnef-brass-bright)" stroke-width="1.4"/><line x1="13" y1="3" x2="13" y2="18" stroke="var(--hnef-brass-bright)" stroke-width="1.2"/></svg>
+              </span>How to play
+            </button>
+            <button class="hnef-theme-swatch" onclick="HNEF.openTips()">
+              <span class="hnef-swatch-preview hnef-swatch-icon">
+                <svg width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M9,2 C13,2 16,5 16,9 C16,12 14.3,13.6 13,15 C12.2,15.9 12,16.5 12,17.5 L6,17.5 C6,16.5 5.8,15.9 5,15 C3.7,13.6 2,12 2,9 C2,5 5,2 9,2 Z" fill="none" stroke="var(--hnef-brass-bright)" stroke-width="1.4"/><line x1="6.5" y1="20" x2="11.5" y2="20" stroke="var(--hnef-brass-bright)" stroke-width="1.4"/><line x1="7" y1="17.5" x2="11" y2="17.5" stroke="var(--hnef-brass-bright)" stroke-width="1.2"/></svg>
+              </span>Tips
+            </button>
+            <button class="hnef-theme-swatch" onclick="HNEF.openHighScores()">
+              <span class="hnef-swatch-preview hnef-swatch-icon">
+                <svg width="22" height="20" viewBox="0 0 22 20" aria-hidden="true"><path d="M6,2 L16,2 L16,9 C16,13 13.5,15 11,15 C8.5,15 6,13 6,9 Z" fill="none" stroke="var(--hnef-brass-bright)" stroke-width="1.4"/><path d="M6,4 L2,4 L2,6 C2,8.5 4,10 6,9.5" fill="none" stroke="var(--hnef-brass-bright)" stroke-width="1.2"/><path d="M16,4 L20,4 L20,6 C20,8.5 18,10 16,9.5" fill="none" stroke="var(--hnef-brass-bright)" stroke-width="1.2"/><line x1="11" y1="15" x2="11" y2="18" stroke="var(--hnef-brass-bright)" stroke-width="1.4"/><line x1="7" y1="18" x2="15" y2="18" stroke="var(--hnef-brass-bright)" stroke-width="1.4"/></svg>
+              </span>High scores
+            </button>
+          </div>
+          <div class="hnef-row-group">
+            <button class="hnef-theme-swatch" data-theme="oak" onclick="HNEF.setTheme('oak')">
+              <span class="hnef-swatch-preview hnef-preview-oak"></span>Norse oak
+            </button>
+            <button class="hnef-theme-swatch" data-theme="manuscript" onclick="HNEF.setTheme('manuscript')">
+              <span class="hnef-swatch-preview hnef-preview-manuscript"></span>Illuminated manuscript
+            </button>
+            <button class="hnef-theme-swatch" data-theme="runestone" onclick="HNEF.setTheme('runestone')">
+              <span class="hnef-swatch-preview hnef-preview-runestone"></span>Runestone
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP SCREEN (vs computer) -->
+  <div class="hnef-screen" id="hnef-screen-setup">
+    <div class="hnef-setup-wrap">
+      <h2>Choose your side</h2>
+      <div class="hnef-hint">Attackers move first and try to capture the king. Defenders try to walk the king to any corner.</div>
+      <div class="hnef-choice-row" id="hnef-side-choice">
+        <button class="hnef-choice-btn" data-side="defender" onclick="HNEF.pickSide('defender')">
+          <span class="hnef-swatch" style="background:var(--hnef-bone);"></span>
+          Defenders (with the King)
+        </button>
+        <button class="hnef-choice-btn" data-side="attacker" onclick="HNEF.pickSide('attacker')">
+          <span class="hnef-swatch" style="background:var(--hnef-iron);"></span>
+          Attackers
+        </button>
+      </div>
+
+      <h2>Choose a difficulty</h2>
+      <div class="hnef-hint">This is how hard the computer will play the opposing side.</div>
+      <div class="hnef-choice-row hnef-four" id="hnef-diff-choice">
+        <button class="hnef-choice-btn" data-diff="easy" onclick="HNEF.pickDiff('easy')">Easy</button>
+        <button class="hnef-choice-btn" data-diff="medium" onclick="HNEF.pickDiff('medium')">Medium</button>
+        <button class="hnef-choice-btn" data-diff="hard" onclick="HNEF.pickDiff('hard')">Hard</button>
+        <button class="hnef-choice-btn" data-diff="expert" onclick="HNEF.pickDiff('expert')">Expert</button>
+      </div>
+
+      <div class="hnef-setup-actions">
+        <button class="hnef-btn-ghost" onclick="HNEF.showScreen('hnef-screen-start')">Back</button>
+        <button class="hnef-btn-primary" id="hnef-setup-start-btn" disabled onclick="HNEF.startVsComputer()">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="hnef-screen" id="hnef-screen-game">
+    <div class="hnef-game-topbar">
+      <div class="hnef-turn-pill">
+        <span class="hnef-turn-dot" id="hnef-turn-dot"></span>
+        <span id="hnef-turn-label">Attackers to move</span>
+      </div>
+      <div class="hnef-tally">
+        <span>Attackers lost: <b id="hnef-tally-atk">0</b></span>
+        <span>Defenders lost: <b id="hnef-tally-def">0</b></span>
+      </div>
+      <div class="hnef-topbar-btns">
+        <button class="hnef-icon-btn" onclick="HNEF.openInstructions()">Instructions</button>
+        <button class="hnef-icon-btn" onclick="HNEF.confirmMenu()">Menu</button>
+      </div>
+    </div>
+
+    <div class="hnef-game-layout">
+      <div class="hnef-board-wrap">
+        <div class="hnef-board-frame" id="hnef-board-frame">
+          <div class="hnef-board" id="hnef-board" role="grid" aria-label="Hnefatafl board"></div>
+        </div>
+      </div>
+
+      <div class="hnef-panel">
+        <h4>Status</h4>
+        <div class="hnef-status-box" id="hnef-status-box">Attackers move first.</div>
+
+        <div id="hnef-hint-block">
+          <div class="hnef-divider"></div>
+          <button class="hnef-icon-btn" style="width:100%;" onclick="HNEF.showHint()">💡 Show a hint</button>
+          <div class="hnef-hint-text" id="hnef-hint-text"></div>
+        </div>
+
+        <div id="hnef-demo-block" style="display:none;">
+          <div class="hnef-divider"></div>
+          <div class="hnef-demo-caption" id="hnef-demo-caption"></div>
+          <div class="hnef-demo-controls" id="hnef-demo-controls"></div>
+          <div class="hnef-demo-progress" id="hnef-demo-progress"></div>
+        </div>
+
+        <div class="hnef-divider"></div>
+        <h4>Key</h4>
+        <div class="hnef-legend">
+          <div><span class="hnef-lk" style="background:var(--hnef-iron);"></span>Attacker</div>
+          <div><span class="hnef-lk" style="background:var(--hnef-bone);"></span>Defender</div>
+          <div><span class="hnef-lk" style="background:var(--hnef-king-gold);"></span>King</div>
+          <div><span class="hnef-lk" style="background:var(--hnef-oxblood);"></span>Corner — king's goal</div>
+          <div><span class="hnef-lk" style="background:var(--hnef-throne-a);"></span>Throne — king only</div>
+        </div>
+        <div class="hnef-divider"></div>
+        <button class="hnef-icon-btn" style="width:100%;" onclick="HNEF.restartCurrentMode()">Restart this game</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INSTRUCTIONS MODAL -->
+<div class="hnef-modal-overlay" id="hnef-instructions-overlay">
+  <div class="hnef-modal">
+    <h2>How to Play Hnefatafl</h2>
+    <div class="hnef-modal-sub">A short, step-by-step guide to the Viking "king's table" game.</div>
+    <ol>
+      <li><b>Meet the pieces.</b> The King (gold) begins on the central throne, surrounded by his shield wall of defenders (bone-white). The attackers (dark iron) ring the four edges of the board.</li>
+      <li><b>The goal.</b> Attackers win by capturing the king. Defenders win by walking the king to any one of the four corner squares.</li>
+      <li><b>How pieces move.</b> Every piece — including the king — moves like a rook in chess: any number of empty squares in a straight line, horizontally or vertically. There are no diagonal moves and no jumping over other pieces.</li>
+      <li><b>Special squares.</b> The throne (center) and the four corners belong to the king alone. Every other piece is blocked from landing on them or passing through them.</li>
+      <li><b>Capturing a piece.</b> Trap an enemy piece between two of your own pieces (or one of your pieces and a hostile empty throne or corner) in a straight line, and it's removed from the board. You must move into position to spring the trap — walking a piece into a sandwich yourself is always safe.</li>
+      <li><b>Capturing the king.</b> The king is far tougher to catch: he's only captured when completely surrounded on all four sides by attackers (or by attackers plus the empty throne).</li>
+      <li><b>Turn order.</b> Attackers always move first, then the two sides alternate one move at a time.</li>
+      <li><b>Other ways to win.</b> If a side has no legal moves left on its turn, that side loses. Stuck on a move? The "Show a hint" button in the side panel will suggest one.</li>
+    </ol>
+    <div class="hnef-modal-close-row">
+      <button class="hnef-btn-primary" onclick="HNEF.closeInstructions()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIPS MODAL -->
+<div class="hnef-modal-overlay" id="hnef-tips-overlay">
+  <div class="hnef-modal">
+    <h2>Tips</h2>
+    <div class="hnef-modal-sub">Hnefatafl is unbalanced by design — attackers usually outnumber defenders roughly two to one, so each side needs a different plan: attackers work to seal off every route to a corner, while defenders look for the one gap they need.</div>
+    <ol>
+      <li><b>Corners and the empty throne are hostile ground.</b> A piece can be captured against a corner or an empty throne, not just between two of your own pieces. Use that instead of committing two pieces to every capture.</li>
+      <li><b>Moving into a sandwich is always safe.</b> Captures only happen to the piece that just got trapped, never to the one that moved there. Use this to reposition boldly right next to the enemy.</li>
+      <li><b>Attackers: build a wall, don't chase the king.</b> Spreading out to close off the ranks and files leading to all four corners does more than lunging at the king directly — a single unguarded lane is all the defenders need.</li>
+      <li><b>Defenders: threaten two escapes at once.</b> If you can open a clear run to two different corners in the same move, the attacker can only block one of them. A lone threat is easy to shut down; a fork usually isn't.</li>
+      <li><b>The king fights too.</b> Unlike a regular defender piece, the king can't be captured by an ordinary sandwich — only by attackers (or a hostile empty throne) surrounding him on all four sides at once. That makes him a surprisingly safe piece to use for springing captures of your own.</li>
+    </ol>
+    <div class="hnef-modal-close-row">
+      <button class="hnef-btn-primary" onclick="HNEF.closeTips()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER MODAL -->
+<div class="hnef-modal-overlay" id="hnef-winner-overlay">
+  <div class="hnef-modal hnef-winner-modal">
+    <div class="hnef-crest" id="hnef-winner-crest">♔</div>
+    <h2 id="hnef-winner-title">Game Over</h2>
+    <p id="hnef-winner-desc"></p>
+
+    <div id="hnef-save-score-row" style="display:none; text-align:left;">
+      <div class="hnef-save-score-label" id="hnef-save-score-label">Save your result to the high score list:</div>
+      <input class="hnef-score-input" id="hnef-score-name-input" type="text" placeholder="Your name" maxlength="20">
+      <button class="hnef-btn-primary" style="width:100%;" onclick="HNEF.saveScoreFromModal()">Save Score</button>
+    </div>
+    <div class="hnef-saved-msg" id="hnef-saved-msg">Saved to the high score list.</div>
+
+    <div class="hnef-winner-actions">
+      <button class="hnef-btn-primary" onclick="HNEF.restartCurrentMode()">Play Again</button>
+      <button class="hnef-btn-ghost" onclick="HNEF.goToMenu()">Main menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIGH SCORES MODAL -->
+<div class="hnef-modal-overlay" id="hnef-highscores-overlay">
+  <div class="hnef-modal">
+    <h2>High Scores</h2>
+    <div class="hnef-modal-sub">Wins against the computer, ranked by fewest moves. Top 100 shown, plus your own result if it falls outside that.</div>
+    <table class="hnef-hs-table">
+      <thead><tr><th>#</th><th>Name</th><th>Side</th><th>Moves</th><th>Difficulty</th></tr></thead>
+      <tbody id="hnef-hs-tbody"></tbody>
+    </table>
+    <div class="hnef-modal-close-row">
+      <button class="hnef-btn-primary" onclick="HNEF.closeHighScores()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY MODAL -->
+<div class="hnef-modal-overlay" id="hnef-history-overlay">
+  <div class="hnef-modal">
+    <h2>A Brief History</h2>
+    <div class="hnef-modal-sub">Where Hnefatafl comes from.</div>
+    <p style="font-size:18px; line-height:1.6; color:var(--hnef-parchment);">
+      Hnefatafl — literally "king's table" — is a Norse strategy game that spread across Scandinavia and the
+      Viking-settled British Isles from roughly the 5th century onward, and appears in Icelandic sagas as a
+      favourite pastime of gods and kings alike. Archaeologists have found boards and pieces from Ireland to
+      Norway to Sweden, but no complete rulebook survived the game's decline after chess arrived in Europe
+      around the 11th–12th centuries. The version played here — "Copenhagen Hnefatafl" — is a modern scholarly
+      reconstruction, pieced together from those archaeological finds and from related surviving games, such
+      as the Sámi game tablut, whose rules were recorded by the naturalist Carl Linnaeus in 1732.
+    </p>
+    <div class="hnef-modal-close-row">
+      <button class="hnef-btn-primary" onclick="HNEF.closeHistory()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- MENU CONFIRM MODAL -->
+<div class="hnef-modal-overlay" id="hnef-menu-overlay">
+  <div class="hnef-modal hnef-winner-modal">
+    <div class="hnef-crest">⚔</div>
+    <h2>Leave this game?</h2>
+    <p>Your current game will be lost.</p>
+    <div class="hnef-winner-actions">
+      <button class="hnef-btn-primary" onclick="HNEF.goToMenu()">Yes, go to menu</button>
+      <button class="hnef-btn-ghost" onclick="HNEF.closeMenuConfirm()">Stay</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+/* =========================================================
+   HNEFATAFL — game engine, AI, and UI
+   Everything in this closure is private. The only thing exposed
+   globally is window.HNEF, built at the bottom, for onclick use.
+   Board values: 0 empty, 1 attacker, 2 defender, 3 king
+   ========================================================= */
+
+const SIZE = 11;
+const CORNERS = [[0,0],[0,10],[10,0],[10,10]];
+const THRONE = [5,5];
+const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+
+function inBounds(r,c){ return r>=0 && r<SIZE && c>=0 && c<SIZE; }
+function isCorner(r,c){ return CORNERS.some(([cr,cc])=>cr===r&&cc===c); }
+function isThrone(r,c){ return r===THRONE[0] && c===THRONE[1]; }
+function isSpecial(r,c){ return isCorner(r,c) || isThrone(r,c); }
+function pieceSideOf(v){ if(v===1) return 'attacker'; if(v===2||v===3) return 'defender'; return null; }
+
+function freshBoard(){
+  const b = Array.from({length:SIZE}, ()=>Array(SIZE).fill(0));
+  const atk = [
+    [0,3],[0,4],[0,5],[0,6],[0,7],[1,5],
+    [10,3],[10,4],[10,5],[10,6],[10,7],[9,5],
+    [3,0],[4,0],[5,0],[6,0],[7,0],[5,1],
+    [3,10],[4,10],[5,10],[6,10],[7,10],[5,9]
+  ];
+  const def = [
+    [3,5],[4,4],[4,5],[4,6],[5,3],[5,4],[5,6],[5,7],[6,4],[6,5],[6,6],[7,5]
+  ];
+  atk.forEach(([r,c])=> b[r][c]=1);
+  def.forEach(([r,c])=> b[r][c]=2);
+  b[5][5]=3;
+  return b;
+}
+
+function cloneBoard(b){ return b.map(row=>row.slice()); }
+
+function getLegalMovesOnBoard(board,r,c){
+  const val = board[r][c];
+  if(val===0) return [];
+  const king = val===3;
+  const moves=[];
+  for(const [dr,dc] of DIRS){
+    let nr=r+dr, nc=c+dc;
+    while(inBounds(nr,nc)){
+      if(board[nr][nc]!==0) break;
+      if(isSpecial(nr,nc) && !king){ break; }
+      moves.push([nr,nc]);
+      nr+=dr; nc+=dc;
+    }
+  }
+  return moves;
+}
+
+function getAllMovesOnBoard(board, side){
+  const moves=[];
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      if(pieceSideOf(board[r][c])===side){
+        for(const [tr,tc] of getLegalMovesOnBoard(board,r,c)){
+          moves.push({r,c,tr,tc});
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+function applyMoveOnBoard(board,r,c,tr,tc){
+  const piece = board[r][c];
+  const side = pieceSideOf(piece);
+  board[r][c]=0;
+  board[tr][tc]=piece;
+  const captured=[];
+  for(const [dr,dc] of DIRS){
+    const nr=tr+dr, nc=tc+dc;
+    if(!inBounds(nr,nc)) continue;
+    const nv = board[nr][nc];
+    if(nv===0) continue;
+    const nSide = pieceSideOf(nv);
+    if(nSide===side) continue;
+    if(nv===3) continue;
+    const fr=nr+dr, fc=nc+dc;
+    if(!inBounds(fr,fc)) continue;
+    const fv = board[fr][fc];
+    const fSide = pieceSideOf(fv);
+    const hostileFar = (fv!==0 && fSide===side) || (fv===0 && isSpecial(fr,fc));
+    if(hostileFar){
+      captured.push({r:nr,c:nc,side:nSide});
+      board[nr][nc]=0;
+    }
+  }
+  return captured;
+}
+
+function kingPosOnBoard(board){
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(board[r][c]===3) return [r,c];
+  return null;
+}
+
+function kingSurroundedOnBoard(board,kPos){
+  const [kr,kc]=kPos;
+  for(const [dr,dc] of DIRS){
+    const nr=kr+dr, nc=kc+dc;
+    if(!inBounds(nr,nc)) return false;
+    const v=board[nr][nc];
+    const hostile = v===1 || (v===0 && isThrone(nr,nc));
+    if(!hostile) return false;
+  }
+  return true;
+}
+
+/* ---------------- AI evaluation (also powers the hint feature) ---------------- */
+function scoreBoard(board){
+  let atk=0, def=0, kPos=null;
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++){
+    const v=board[r][c];
+    if(v===1) atk++;
+    else if(v===2) def++;
+    else if(v===3) kPos=[r,c];
+  }
+  let s = atk*8 - def*8;
+  if(kPos){
+    const kingMoves = getLegalMovesOnBoard(board,kPos[0],kPos[1]).length;
+    s -= kingMoves*2;
+    const [kr,kc]=kPos;
+    const minDist = Math.min(kr+kc, kr+(10-kc), (10-kr)+kc, (10-kr)+(10-kc));
+    s += minDist*1.5;
+  }
+  return s;
+}
+
+function terminalScore(board){
+  const kPos = kingPosOnBoard(board);
+  if(!kPos) return 100000;
+  if(isCorner(kPos[0],kPos[1])) return -100000;
+  if(kingSurroundedOnBoard(board,kPos)) return 100000;
+  return null;
+}
+
+/* One-ply-deeper alpha-beta search used by 'expert': for every one of the
+   AI's own legal moves (no truncation — Hard already truncates to its own
+   top candidates, so Expert widens rather than narrows), look two plies
+   further ahead (opponent's best reply, then the AI's best counter-reply),
+   pruning those deeper plies by a quick one-ply score for tractability. */
+function minimax(board, side, depth, alpha, beta){
+  const term = terminalScore(board);
+  if(term!==null) return term;
+  if(depth===0) return scoreBoard(board);
+  const moves = getAllMovesOnBoard(board, side);
+  if(moves.length===0){
+    return side==='attacker' ? -50000 : 50000;
+  }
+  const scoredMoves = moves.map(m=>{
+    const b=cloneBoard(board); applyMoveOnBoard(b,m.r,m.c,m.tr,m.tc);
+    const quick = terminalScore(b);
+    return {m,b,quick: quick!==null?quick:scoreBoard(b)};
+  });
+  scoredMoves.sort((a,b)=> side==='attacker'? b.quick-a.quick : a.quick-b.quick);
+  const pruned = scoredMoves.slice(0, Math.min(10, scoredMoves.length));
+  if(side==='attacker'){
+    let value=-Infinity;
+    for(const {b} of pruned){
+      const v = minimax(b, 'defender', depth-1, alpha, beta);
+      value=Math.max(value,v);
+      alpha=Math.max(alpha,value);
+      if(alpha>=beta) break;
+    }
+    return value;
+  } else {
+    let value=Infinity;
+    for(const {b} of pruned){
+      const v = minimax(b, 'attacker', depth-1, alpha, beta);
+      value=Math.min(value,v);
+      beta=Math.min(beta,value);
+      if(alpha>=beta) break;
+    }
+    return value;
+  }
+}
+function aiChooseMoveExpert(side, board){
+  const moves = getAllMovesOnBoard(board, side);
+  if(moves.length===0) return null;
+  const oppSide = side==='attacker'?'defender':'attacker';
+  let best=null, alpha=-Infinity, beta=Infinity;
+  for(const m of moves){
+    const b=cloneBoard(board); applyMoveOnBoard(b,m.r,m.c,m.tr,m.tc);
+    const val = minimax(b, oppSide, 2, alpha, beta);
+    if(!best || (side==='attacker'? val>best.val : val<best.val)) best={m,val};
+    if(side==='attacker') alpha=Math.max(alpha,val); else beta=Math.min(beta,val);
+  }
+  return best ? best.m : null;
+}
+
+function aiChooseMove(side, difficulty, board){
+  if(difficulty==='expert') return aiChooseMoveExpert(side, board);
+  const moves = getAllMovesOnBoard(board, side);
+  if(moves.length===0) return null;
+
+  if(difficulty==='easy'){
+    return moves[Math.floor(Math.random()*moves.length)];
+  }
+
+  const scored = moves.map(m=>{
+    const b = cloneBoard(board);
+    applyMoveOnBoard(b,m.r,m.c,m.tr,m.tc);
+    let val = terminalScore(b);
+    if(val===null) val = scoreBoard(b);
+    return {m, val, board:b};
+  });
+  scored.sort((a,b)=> side==='attacker' ? b.val-a.val : a.val-b.val);
+
+  if(difficulty==='medium'){
+    const top = scored.slice(0, Math.min(3, scored.length));
+    const pick = Math.random()<0.72 ? top[0] : top[Math.floor(Math.random()*top.length)];
+    return pick.m;
+  }
+
+  const candidates = scored.slice(0, Math.min(12, scored.length));
+  const oppSide = side==='attacker' ? 'defender' : 'attacker';
+  let best=null;
+  for(const cand of candidates){
+    if(Math.abs(cand.val)>=100000){
+      if(!best || (side==='attacker' ? cand.val>best.val : cand.val<best.val)) best={m:cand.m, val:cand.val};
+      continue;
+    }
+    const oppMoves = getAllMovesOnBoard(cand.board, oppSide);
+    let finalVal;
+    if(oppMoves.length===0){
+      finalVal = side==='attacker' ? 100000 : -100000;
+    } else {
+      finalVal = oppSide==='attacker' ? -Infinity : Infinity;
+      for(const om of oppMoves){
+        const b2 = cloneBoard(cand.board);
+        applyMoveOnBoard(b2, om.r, om.c, om.tr, om.tc);
+        let v2 = terminalScore(b2);
+        if(v2===null) v2 = scoreBoard(b2);
+        if(oppSide==='attacker'){ if(v2>finalVal) finalVal=v2; }
+        else { if(v2<finalVal) finalVal=v2; }
+      }
+    }
+    if(!best || (side==='attacker' ? finalVal>best.val : finalVal<best.val)) best={m:cand.m, val:finalVal};
+  }
+  return best ? best.m : candidates[0].m;
+}
+
+/* ---------------- persistence (falls back gracefully if storage is unavailable) ---------------- */
+const storage = {
+  get(key, fallback){
+    try{ const v = localStorage.getItem(key); return v!==null ? JSON.parse(v) : fallback; }
+    catch(e){ return fallback; }
+  },
+  set(key, val){
+    try{ localStorage.setItem(key, JSON.stringify(val)); } catch(e){ /* storage unavailable — ignore */ }
+  }
+};
+
+const HS_SHOWN = 100;
+let highScores = storage.get('hnef_highscores', []);
+let lastPlayerName = storage.get('hnef_playername', '');
+let lastScoreTs = storage.get('hnef_last_score_ts', null);
+
+function recordScore(name, side, moves, difficulty){
+  const ts = Date.now() + Math.random();
+  highScores.push({ name, side, moves, difficulty, ts });
+  highScores.sort((a,b)=>a.moves-b.moves);
+  highScores = highScores.slice(0,1000);
+  storage.set('hnef_highscores', highScores);
+  lastScoreTs = ts;
+  storage.set('hnef_last_score_ts', ts);
+}
+function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+function hsRowHtml(s, rank){
+  const mine = (lastScoreTs!==null && s.ts===lastScoreTs) ? ' hnef-hs-you' : '';
+  return `<tr class="${mine.trim()}"><td>${rank}</td><td>${escapeHtml(s.name)}</td><td>${s.side==='attacker'?'Attacker':'Defender'}</td><td>${s.moves}</td><td>${escapeHtml(s.difficulty)}</td></tr>`;
+}
+function renderHighScores(){
+  const tbody = document.getElementById('hnef-hs-tbody');
+  if(highScores.length===0){
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--hnef-parchment-dim);padding:16px;">No scores yet — win a game against the computer to set the first record.</td></tr>';
+    return;
+  }
+  const top = highScores.slice(0, HS_SHOWN);
+  let rows = top.map((s,i)=>hsRowHtml(s,i+1)).join('');
+  const yourIdx = lastScoreTs!==null ? highScores.findIndex(s=>s.ts===lastScoreTs) : -1;
+  if(yourIdx >= HS_SHOWN){
+    rows += '<tr class="hnef-hs-gap"><td colspan="5">⋯</td></tr>';
+    rows += hsRowHtml(highScores[yourIdx], yourIdx+1);
+  }
+  tbody.innerHTML = rows;
+}
+function openHighScores(){ renderHighScores(); document.getElementById('hnef-highscores-overlay').classList.add('hnef-active'); }
+function closeHighScores(){ document.getElementById('hnef-highscores-overlay').classList.remove('hnef-active'); }
+function openHistory(){ document.getElementById('hnef-history-overlay').classList.add('hnef-active'); }
+function closeHistory(){ document.getElementById('hnef-history-overlay').classList.remove('hnef-active'); }
+
+/* ---------------- theming ---------------- */
+function setTheme(name){
+  const el = document.getElementById('hnef-app');
+  el.className = 'hnef-app hnef-theme-' + name;
+  storage.set('hnef_theme', name);
+  document.querySelectorAll('.hnef-theme-swatch').forEach(b=>b.classList.toggle('hnef-selected', b.dataset.theme===name));
+}
+function initThemeUI(){
+  const el = document.getElementById('hnef-app');
+  const match = el.className.match(/hnef-theme-(\w+)/);
+  const current = (match && match[1]) || storage.get('hnef_theme','oak');
+  setTheme(current || 'oak');
+}
+
+/* =========================================================
+   GAME STATE + UI
+   ========================================================= */
+
+const state = {
+  board: freshBoard(),
+  turn: 'attacker',
+  mode: null,
+  humanSide: null,
+  aiSide: null,
+  difficulty: null,
+  selected: null,
+  legalDests: [],
+  gameOver: false,
+  capturedCount: {attacker:0, defender:0},
+  lastMove: null,
+  moveCount: 0,
+  demoIndex: 0,
+  demoHandedOff: false,
+  hintMove: null,
+  locked: false
+};
+
+const DEMO_SCRIPT = [
+  { side:'attacker', from:[1,5], to:[2,5],
+    who:'Attackers', text:"Attackers advance down the throne's column, narrowing the king's northern escape route." },
+  { side:'defender', from:[5,7], to:[5,8],
+    who:'Defenders', text:"Defenders probe east, testing whether the king can break for a corner." },
+  { side:'attacker', from:[0,7], to:[5,7],
+    who:'Attackers', text:"An attacker races down the seventh file and closes the trap — the defender is captured between two attackers!" },
+  { side:'defender', from:[6,6], to:[6,8],
+    who:'Defenders', text:"Defenders regroup, guarding the eastern approach and rebuilding the shield wall." },
+  { side:'attacker', from:[9,5], to:[8,5],
+    who:'Attackers', text:"In the south, another attacker steps forward, mirroring the pressure from the north." },
+  { side:'defender', from:[6,4], to:[8,4],
+    who:'Defenders', text:"Defenders extend south too, keeping the wall even before the king risks a move." }
+];
+
+/* ---------- screen management ---------- */
+function showScreen(id){
+  document.querySelectorAll('.hnef-screen').forEach(s=>s.classList.remove('hnef-active'));
+  document.getElementById(id).classList.add('hnef-active');
+}
+
+/* ---------- setup screen ---------- */
+let setupSide=null, setupDiff=null;
+function pickSide(side){
+  setupSide=side;
+  document.querySelectorAll('#hnef-side-choice .hnef-choice-btn').forEach(b=>b.classList.toggle('hnef-selected', b.dataset.side===side));
+  updateSetupButton();
+}
+function pickDiff(diff){
+  setupDiff=diff;
+  document.querySelectorAll('#hnef-diff-choice .hnef-choice-btn').forEach(b=>b.classList.toggle('hnef-selected', b.dataset.diff===diff));
+  updateSetupButton();
+}
+function updateSetupButton(){
+  document.getElementById('hnef-setup-start-btn').disabled = !(setupSide && setupDiff);
+}
+function startVsComputer(){
+  resetState();
+  state.mode='vsAI';
+  state.humanSide=setupSide;
+  state.aiSide = setupSide==='attacker' ? 'defender' : 'attacker';
+  state.difficulty=setupDiff;
+  showScreen('hnef-screen-game');
+  document.getElementById('hnef-demo-block').style.display='none';
+  document.getElementById('hnef-hint-block').style.display='block';
+  render();
+  setStatus(state.turn===state.humanSide ? "Your move." : "Computer is thinking…");
+  maybeTriggerAI();
+}
+function startTwoPlayer(){
+  resetState();
+  state.mode='two';
+  showScreen('hnef-screen-game');
+  document.getElementById('hnef-demo-block').style.display='none';
+  document.getElementById('hnef-hint-block').style.display='block';
+  render();
+  setStatus("Attackers move first.");
+}
+
+/* ---------- reset / restart ---------- */
+function resetState(){
+  state.board = freshBoard();
+  state.turn='attacker';
+  state.selected=null;
+  state.legalDests=[];
+  state.gameOver=false;
+  state.capturedCount={attacker:0, defender:0};
+  state.lastMove=null;
+  state.moveCount=0;
+  state.demoIndex=0;
+  state.demoHandedOff=false;
+  state.hintMove=null;
+  state.locked=false;
+  closeWinnerModal();
+  const ht=document.getElementById('hnef-hint-text'); if(ht) ht.textContent='';
+}
+function restartCurrentMode(){
+  closeWinnerModal();
+  const mode = state.mode;
+  if(mode==='vsAI'){
+    const h=state.humanSide, d=state.difficulty;
+    resetState();
+    state.mode='vsAI'; state.humanSide=h; state.aiSide= h==='attacker'?'defender':'attacker'; state.difficulty=d;
+    document.getElementById('hnef-demo-block').style.display='none';
+    document.getElementById('hnef-hint-block').style.display='block';
+    render();
+    setStatus(state.turn===state.humanSide ? "Your move." : "Computer is thinking…");
+    maybeTriggerAI();
+  } else if(mode==='two'){
+    resetState();
+    state.mode='two';
+    document.getElementById('hnef-demo-block').style.display='none';
+    document.getElementById('hnef-hint-block').style.display='block';
+    render();
+    setStatus("Attackers move first.");
+  } else {
+    startDemo();
+  }
+}
+function goToMenu(){
+  closeWinnerModal();
+  closeMenuConfirm();
+  showScreen('hnef-screen-start');
+}
+function confirmMenu(){ document.getElementById('hnef-menu-overlay').classList.add('hnef-active'); }
+function closeMenuConfirm(){ document.getElementById('hnef-menu-overlay').classList.remove('hnef-active'); }
+
+/* ---------- instructions modal ---------- */
+function openInstructions(){ document.getElementById('hnef-instructions-overlay').classList.add('hnef-active'); }
+function closeInstructions(){ document.getElementById('hnef-instructions-overlay').classList.remove('hnef-active'); }
+function openTips(){ document.getElementById('hnef-tips-overlay').classList.add('hnef-active'); }
+function closeTips(){ document.getElementById('hnef-tips-overlay').classList.remove('hnef-active'); }
+
+/* ---------- winner modal ---------- */
+function showWinnerModal(){
+  const overlay = document.getElementById('hnef-winner-overlay');
+  const title = document.getElementById('hnef-winner-title');
+  const desc = document.getElementById('hnef-winner-desc');
+  const crest = document.getElementById('hnef-winner-crest');
+  if(state.winner==='attacker'){
+    crest.textContent='⚔';
+    title.textContent='Attackers Win';
+    desc.textContent = state.winReason==='captured'
+      ? "The king has been surrounded and captured. The shield wall has fallen."
+      : "The defenders have no moves left. The siege is over.";
+  } else {
+    crest.textContent='♔';
+    title.textContent='Defenders Win';
+    desc.textContent = state.winReason==='escaped'
+      ? "The king has broken free and reached a corner. Long live the king!"
+      : "The attackers have no moves left. The king's guard prevails.";
+  }
+
+  const saveRow = document.getElementById('hnef-save-score-row');
+  const savedMsg = document.getElementById('hnef-saved-msg');
+  savedMsg.style.display='none';
+  const qualifies = state.mode==='vsAI' && state.winner===state.humanSide;
+  if(qualifies){
+    document.getElementById('hnef-save-score-label').textContent =
+      `You won in ${state.moveCount} move${state.moveCount===1?'':'s'}. Save your result to the high score list:`;
+    document.getElementById('hnef-score-name-input').value = lastPlayerName;
+    saveRow.style.display='block';
+  } else {
+    saveRow.style.display='none';
+  }
+
+  overlay.classList.add('hnef-active');
+}
+function closeWinnerModal(){ document.getElementById('hnef-winner-overlay').classList.remove('hnef-active'); }
+function saveScoreFromModal(){
+  const input = document.getElementById('hnef-score-name-input');
+  const name = (input.value || '').trim().slice(0,20) || 'Anonymous';
+  lastPlayerName = name;
+  storage.set('hnef_playername', name);
+  recordScore(name, state.humanSide, state.moveCount, state.difficulty);
+  document.getElementById('hnef-save-score-row').style.display='none';
+  document.getElementById('hnef-saved-msg').style.display='block';
+}
+
+/* ---------- status / rendering ---------- */
+function setStatus(text, thinking){
+  const box = document.getElementById('hnef-status-box');
+  box.textContent = text;
+  box.classList.toggle('hnef-thinking', !!thinking);
+}
+
+const KNOT_MARK_SVG = '<svg viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80" fill="none" stroke="rgba(20,12,4,0.6)" stroke-width="4"/><path d="M50,22 L78,50 L50,78 L22,50 Z" fill="none" stroke="rgba(20,12,4,0.6)" stroke-width="3"/><path d="M50,36 L64,50 L50,64 L36,50 Z" fill="none" stroke="rgba(20,12,4,0.6)" stroke-width="2.5"/></svg>';
+
+/* Decorative Celtic-knotwork border frame around the board, drawn once as a
+   static SVG (not regenerated on every render — it never changes). Uses CSS
+   variables for the wood fill so it re-themes automatically. */
+function buildBoardFrame(){
+  const host = document.getElementById('hnef-board-frame');
+  if(!host || host.querySelector('.hnef-board-frame-svg')) return;
+  const NS='http://www.w3.org/2000/svg';
+  function el(t,a){ const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); return e; }
+  const svg = el('svg',{ class:'hnef-board-frame-svg', viewBox:'0 0 640 640', role:'img' });
+  svg.appendChild(el('title',{})); svg.lastChild.textContent='Decorative board frame';
+  const ink='rgba(20,12,4,0.6)';
+  const wood='var(--hnef-wood-mid)';
+  const outer=20, boardSz=600;
+  svg.appendChild(el('rect',{x:outer,y:outer,width:boardSz,height:boardSz,rx:14,fill:wood}));
+
+  const border=76;
+  const frameOuter=16, frameInner=border-16;
+  const bandCenter=frameOuter+(frameInner-frameOuter)/2;
+  const maxR=(frameInner-frameOuter)/2-3;
+
+  function diamond(cx,cy,r){
+    return 'M'+cx+','+(cy-r)+' L'+(cx+r)+','+cy+' L'+cx+','+(cy+r)+' L'+(cx-r)+','+cy+' Z';
+  }
+  function arcPath(cx,cy,rx,ry,startDeg,endDeg){
+    function pt(deg){ const a=deg*Math.PI/180; return [cx+rx*Math.cos(a), cy+ry*Math.sin(a)]; }
+    const p0=pt(startDeg), p1=pt(endDeg);
+    const large = Math.abs(endDeg-startDeg)>180 ? 1:0;
+    return 'M'+p0[0]+','+p0[1]+' A'+rx+' '+ry+' 0 '+large+' 1 '+p1[0]+','+p1[1];
+  }
+  function reedShape(parent,cx,cy,r){
+    const rx=r, ry=r*0.55;
+    const a1s=10, a1e=170, a2s=190, a2e=350;
+    parent.appendChild(el('path',{d:arcPath(cx,cy,rx,ry,a1s,a1e), fill:'none', stroke:ink, 'stroke-width':2.6}));
+    parent.appendChild(el('path',{d:arcPath(cx,cy,rx,ry,a2s,a2e), fill:'none', stroke:ink, 'stroke-width':2.6}));
+    parent.appendChild(el('path',{d:arcPath(cx,cy,rx*0.55,ry*0.55,a1s,a1e), fill:'none', stroke:ink, 'stroke-width':1.4}));
+    parent.appendChild(el('path',{d:arcPath(cx,cy,rx*0.55,ry*0.55,a2s,a2e), fill:'none', stroke:ink, 'stroke-width':1.4}));
+  }
+  function borderChain(x1,y1,x2,y2,count,horiz){
+    const dx=(x2-x1)/count, dy=(y2-y1)/count;
+    const r=maxR;
+    for(let i=0;i<count;i++){
+      const cx=x1+dx*(i+0.5), cy=y1+dy*(i+0.5);
+      if(i%2===0){
+        svg.appendChild(el('path',{d:diamond(cx,cy,r*0.9), fill:'none', stroke:ink, 'stroke-width':2.6}));
+        svg.appendChild(el('path',{d:diamond(cx,cy,r*0.52), fill:'none', stroke:ink, 'stroke-width':1.6}));
+        svg.appendChild(el('path',{d:diamond(cx,cy,r*0.2), fill:ink}));
+      } else if(horiz){
+        reedShape(svg,cx,cy,r);
+      } else {
+        const g=el('g',{transform:'rotate(90 '+cx+' '+cy+')'});
+        svg.appendChild(g);
+        reedShape(g,cx,cy,r);
+      }
+    }
+  }
+  borderChain(outer+border*0.5, outer+bandCenter, outer+boardSz-border*0.5, outer+bandCenter, 13, true);
+  borderChain(outer+border*0.5, outer+boardSz-bandCenter, outer+boardSz-border*0.5, outer+boardSz-bandCenter, 13, true);
+  borderChain(outer+bandCenter, outer+border*0.5, outer+bandCenter, outer+boardSz-border*0.5, 11, false);
+  borderChain(outer+boardSz-bandCenter, outer+border*0.5, outer+boardSz-bandCenter, outer+boardSz-border*0.5, 11, false);
+
+  svg.appendChild(el('rect',{x:outer+frameOuter,y:outer+frameOuter,width:boardSz-frameOuter*2,height:boardSz-frameOuter*2,rx:8,fill:'none',stroke:ink,'stroke-width':1.6,opacity:0.7}));
+  svg.appendChild(el('rect',{x:outer+frameInner,y:outer+frameInner,width:boardSz-frameInner*2,height:boardSz-frameInner*2,fill:'none',stroke:ink,'stroke-width':1.6,opacity:0.7}));
+
+  host.insertBefore(svg, host.firstChild);
+}
+
+function render(){
+  const board = document.getElementById('hnef-board');
+  board.innerHTML='';
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const cell = document.createElement('div');
+      cell.className='hnef-cell '+((r+c)%2===0?'hnef-sq-a':'hnef-sq-b');
+      if(isCorner(r,c) || isThrone(r,c)){
+        const mark=document.createElement('div');
+        mark.className='hnef-sq-mark';
+        mark.innerHTML=KNOT_MARK_SVG;
+        cell.appendChild(mark);
+      }
+      cell.dataset.r=r; cell.dataset.c=c;
+
+      if(state.selected && state.selected.r===r && state.selected.c===c) cell.className += ' hnef-selected';
+      if(state.legalDests.some(([lr,lc])=>lr===r&&lc===c)) cell.className += ' hnef-legal-move';
+      if(state.lastMove){
+        if(state.lastMove.from[0]===r && state.lastMove.from[1]===c) cell.className += ' hnef-last-from';
+        if(state.lastMove.to[0]===r && state.lastMove.to[1]===c) cell.className += ' hnef-last-to';
+      }
+      if(state.hintMove){
+        if(state.hintMove.r===r && state.hintMove.c===c) cell.className += ' hnef-hint-from';
+        if(state.hintMove.tr===r && state.hintMove.tc===c) cell.className += ' hnef-hint-to';
+      }
+
+      const val = state.board[r][c];
+      if(val!==0){
+        const p = document.createElement('div');
+        p.className = 'hnef-piece ' + (val===1?'hnef-piece-attacker':val===3?'hnef-piece-king':'hnef-piece-defender');
+        cell.appendChild(p);
+      }
+
+      const interactive = canInteract();
+      const isDest = state.legalDests.some(([lr,lc])=>lr===r&&lc===c);
+      if((interactive && pieceSideOf(val)===state.turn) || (interactive && isDest)) cell.className += ' hnef-clickable';
+
+      cell.addEventListener('click', ()=>cellClick(r,c));
+      board.appendChild(cell);
+    }
+  }
+
+  document.getElementById('hnef-tally-atk').textContent = state.capturedCount.attacker;
+  document.getElementById('hnef-tally-def').textContent = state.capturedCount.defender;
+  const dot = document.getElementById('hnef-turn-dot');
+  dot.className = 'hnef-turn-dot ' + state.turn;
+  document.getElementById('hnef-turn-label').textContent =
+    state.turn==='attacker' ? 'Attackers to move' : 'Defenders to move';
+}
+
+function canInteract(){
+  if(state.gameOver || state.locked) return false;
+  if(state.mode==='demo' && !state.demoHandedOff) return false;
+  if(state.mode==='vsAI' && state.turn!==state.humanSide) return false;
+  return true;
+}
+
+/* ---------- hint ---------- */
+function clearHint(){
+  state.hintMove=null;
+  const ht=document.getElementById('hnef-hint-text');
+  if(ht) ht.textContent='';
+}
+function showHint(){
+  if(!canInteract()) return;
+  const move = aiChooseMove(state.turn, 'hard', state.board);
+  if(!move){ document.getElementById('hnef-hint-text').textContent = "No legal moves are available."; return; }
+  state.hintMove = move;
+  const pieceVal = state.board[move.r][move.c];
+  const pieceLabel = pieceVal===3 ? 'king' : (state.turn==='attacker' ? 'attacker' : 'defender');
+  document.getElementById('hnef-hint-text').textContent =
+    `Try the ${pieceLabel} at row ${move.r+1}, column ${move.c+1} → row ${move.tr+1}, column ${move.tc+1}.`;
+  render();
+}
+
+/* ---------- click handling ---------- */
+function cellClick(r,c){
+  if(!canInteract()) return;
+  const val = state.board[r][c];
+
+  if(state.selected){
+    const isDest = state.legalDests.some(([lr,lc])=>lr===r&&lc===c);
+    if(isDest){
+      performMove(state.selected.r, state.selected.c, r, c);
+      return;
+    }
+    if(pieceSideOf(val)===state.turn){
+      selectPiece(r,c);
+      return;
+    }
+    clearSelection();
+    render();
+    return;
+  } else {
+    if(pieceSideOf(val)===state.turn){
+      selectPiece(r,c);
+    }
+  }
+}
+
+function selectPiece(r,c){
+  state.selected={r,c};
+  state.legalDests = getLegalMovesOnBoard(state.board,r,c);
+  clearHint();
+  render();
+}
+function clearSelection(){
+  state.selected=null;
+  state.legalDests=[];
+}
+
+function performMove(r,c,tr,tc){
+  const mover = state.turn;
+  const captured = applyMoveOnBoard(state.board,r,c,tr,tc);
+  captured.forEach(cap=> state.capturedCount[cap.side]++ );
+  state.lastMove={ from:[r,c], to:[tr,tc] };
+  state.moveCount++;
+  clearSelection();
+  clearHint();
+
+  evaluateAfterMove(mover, captured.length);
+}
+
+function evaluateAfterMove(moverSide, captureCount){
+  const kPos = kingPosOnBoard(state.board);
+  let ended=false;
+  if(!kPos){
+    state.gameOver=true; state.winner='attacker'; state.winReason='captured'; ended=true;
+  } else if(isCorner(kPos[0],kPos[1])){
+    state.gameOver=true; state.winner='defender'; state.winReason='escaped'; ended=true;
+  } else if(kingSurroundedOnBoard(state.board,kPos)){
+    state.gameOver=true; state.winner='attacker'; state.winReason='captured'; ended=true;
+  }
+
+  if(!ended){
+    const nextSide = moverSide==='attacker' ? 'defender' : 'attacker';
+    const nextMoves = getAllMovesOnBoard(state.board, nextSide);
+    if(nextMoves.length===0){
+      state.gameOver=true; state.winner=moverSide; state.winReason='stalemate'; ended=true;
+    } else {
+      state.turn = nextSide;
+    }
+  }
+
+  render();
+
+  if(state.gameOver){
+    setStatus(state.winner==='attacker' ? "The attackers have won." : "The defenders have won.");
+    showWinnerModal();
+    return;
+  }
+
+  let msg = captureCount>0 ? `${captureCount} piece${captureCount>1?'s':''} captured. ` : '';
+  if(state.mode==='vsAI'){
+    msg += state.turn===state.humanSide ? "Your move." : "Computer is thinking…";
+  } else if(state.mode==='two'){
+    msg += (state.turn==='attacker' ? "Attackers" : "Defenders") + " to move.";
+  }
+  setStatus(msg, state.mode==='vsAI' && state.turn!==state.humanSide);
+
+  maybeTriggerAI();
+}
+
+function maybeTriggerAI(){
+  if(state.mode!=='vsAI' || state.gameOver) return;
+  if(state.turn!==state.aiSide) return;
+  state.locked=true;
+  render();
+  setStatus("Computer is thinking…", true);
+  setTimeout(()=>{
+    const move = aiChooseMove(state.aiSide, state.difficulty, state.board);
+    state.locked=false;
+    if(!move){
+      state.gameOver=true; state.winner=state.humanSide; state.winReason='stalemate';
+      render(); setStatus("The computer has no moves."); showWinnerModal();
+      return;
+    }
+    const captured = applyMoveOnBoard(state.board, move.r, move.c, move.tr, move.tc);
+    captured.forEach(cap=> state.capturedCount[cap.side]++ );
+    state.lastMove={ from:[move.r,move.c], to:[move.tr,move.tc] };
+    state.moveCount++;
+    evaluateAfterMove(state.aiSide, captured.length);
+  }, 550);
+}
+
+/* ---------- demo mode ---------- */
+function startDemo(){
+  resetState();
+  state.mode='demo';
+  showScreen('hnef-screen-game');
+  document.getElementById('hnef-demo-block').style.display='block';
+  document.getElementById('hnef-hint-block').style.display='none';
+  goToDemoIndex(0);
+  setStatus("Step through the opening moves, then take over the board.");
+}
+
+// Rebuilds the board from scratch and replays the first `index` scripted
+// moves, so a single click can move forward OR back to any point.
+function goToDemoIndex(index){
+  index = Math.max(0, Math.min(index, DEMO_SCRIPT.length));
+  state.board = freshBoard();
+  state.capturedCount = {attacker:0, defender:0};
+  state.lastMove = null;
+  for(let k=0;k<index;k++){
+    const step = DEMO_SCRIPT[k];
+    const captured = applyMoveOnBoard(state.board, step.from[0], step.from[1], step.to[0], step.to[1]);
+    captured.forEach(cap=> state.capturedCount[cap.side]++ );
+    state.lastMove = { from:step.from, to:step.to };
+  }
+  state.demoIndex = index;
+  state.turn = index < DEMO_SCRIPT.length
+    ? DEMO_SCRIPT[index].side
+    : (DEMO_SCRIPT[DEMO_SCRIPT.length-1].side==='attacker' ? 'defender' : 'attacker');
+  render();
+  renderDemoPanel();
+}
+
+function renderDemoPanel(){
+  const caption = document.getElementById('hnef-demo-caption');
+  const controls = document.getElementById('hnef-demo-controls');
+  const progress = document.getElementById('hnef-demo-progress');
+  const i = state.demoIndex;
+
+  if(i===0){
+    caption.innerHTML = `<span class="hnef-who">Opening</span>Attackers move first. Click "Next move" to begin — you can always step back.`;
+  } else {
+    const step = DEMO_SCRIPT[i-1];
+    caption.innerHTML = `<span class="hnef-who">${step.who}</span>${step.text}`;
+  }
+
+  controls.innerHTML='';
+  const row = document.createElement('div');
+  row.className = 'hnef-demo-btn-row';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'hnef-btn-ghost';
+  backBtn.textContent='← Back';
+  backBtn.disabled = (i===0);
+  backBtn.onclick = ()=>goToDemoIndex(i-1);
+  row.appendChild(backBtn);
+
+  if(i < DEMO_SCRIPT.length){
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'hnef-btn-primary';
+    nextBtn.textContent = i===0 ? 'Next move' : 'Next move';
+    nextBtn.onclick = ()=>goToDemoIndex(i+1);
+    row.appendChild(nextBtn);
+    controls.appendChild(row);
+    progress.textContent = `Move ${i+1} of ${DEMO_SCRIPT.length}`;
+  } else {
+    controls.appendChild(row);
+    const handoffNote = document.createElement('div');
+    handoffNote.style.fontSize='13.5px';
+    handoffNote.style.color='var(--hnef-bone-hi)';
+    handoffNote.style.margin='10px 0 8px';
+    handoffNote.textContent = 'Opening complete — choose a side to finish the game against an easy computer opponent:';
+    controls.appendChild(handoffNote);
+
+    const b1=document.createElement('button');
+    b1.className = 'hnef-btn-primary'; b1.style.width='100%'; b1.style.marginBottom='8px'; b1.textContent='Play as Defenders';
+    b1.onclick=()=>handoffFromDemo('defender');
+    const b2=document.createElement('button');
+    b2.className = 'hnef-btn-ghost'; b2.style.width='100%'; b2.textContent='Play as Attackers';
+    b2.onclick=()=>handoffFromDemo('attacker');
+    controls.appendChild(b1); controls.appendChild(b2);
+    progress.textContent = 'Opening complete';
+  }
+}
+
+function handoffFromDemo(side){
+  state.mode='vsAI';
+  state.humanSide=side;
+  state.aiSide = side==='attacker' ? 'defender' : 'attacker';
+  state.difficulty='easy';
+  state.demoHandedOff=true;
+  state.moveCount=0;
+  document.getElementById('hnef-demo-block').style.display='none';
+  document.getElementById('hnef-hint-block').style.display='block';
+  render();
+  setStatus(state.turn===state.humanSide ? "Your move." : "Computer is thinking…");
+  maybeTriggerAI();
+}
+
+/* ---------- init ---------- */
+initThemeUI();
+buildBoardFrame();
+render();
+
+/* ---------- expose only what onclick="" handlers need ---------- */
+window.HNEF = {
+  showScreen, startTwoPlayer, startVsComputer, startDemo,
+  pickSide, pickDiff,
+  openInstructions, closeInstructions,
+  openTips, closeTips,
+  openHighScores, closeHighScores,
+  openHistory, closeHistory,
+  saveScoreFromModal,
+  confirmMenu, closeMenuConfirm, goToMenu,
+  restartCurrentMode, showHint, setTheme
+};
+
+})();
+</script>
+</div><!-- /.hnef-app -->
+</body>
+</html>

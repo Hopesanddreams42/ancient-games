@@ -1,0 +1,17 @@
+{
+  "name": "Seven Ancient Games",
+  "short_name": "Ancient Games",
+  "description": "Seven board games reconstructed from the ancient world — Egypt, Mesopotamia, Rome, Scandinavia, West Africa, Sri Lanka, and the Maya lowlands.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#17140F",
+  "theme_color": "#17140F",
+  "orientation": "any",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

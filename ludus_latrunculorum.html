@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ludus Latrunculorum</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     FUTURE-PROOFING NOTES (for later combination with other games):
+     - Every class and element ID in this file is prefixed "lat-".
+     - All theme variables are scoped under .lat-app (not :root/html),
+       so they cannot leak into or collide with another game's theme.
+     - All JS is wrapped in a single IIFE; the only global it creates
+       is one namespace object, window.LAT, used solely for the
+       onclick="LAT.xxx()" handlers below. Everything else (state,
+       render, helper functions) stays private to the closure.
+     - localStorage keys are prefixed "latrunculorum_".
+     ========================================================= */
+
+  .lat-app{
+    --lat-bg:#161208; --lat-bg-2:#221c10;
+    --lat-board-a:#e8ddc0; --lat-board-b:#8a5a3a;
+    --lat-ink:#f0e6d0; --lat-ink-dim:#c9bb9c;
+    --lat-accent:#b8862f; --lat-accent-bright:#d9a84f;
+    --lat-ivory:#f0e6ce; --lat-ivory-hi:#fffaf0;
+    --lat-obsidian:#2a2420; --lat-obsidian-hi:#4a4038;
+    --lat-panel-bg: linear-gradient(160deg, #241c11, #191309);
+    --lat-line:#5a4526; --lat-line-2:#3a2c18;
+    --lat-frame-1:#8a5a3a; --lat-frame-2:#4a3018; --lat-frame-3:#221c10;
+    --lat-input-bg:#191309;
+    --lat-radius:6px;
+  }
+  .lat-app.lat-theme-legion{
+    --lat-bg:#160c0c; --lat-bg-2:#1f1010;
+    --lat-board-a:#5a5148; --lat-board-b:#2e2822;
+    --lat-ink:#eee2d0; --lat-ink-dim:#b8a892;
+    --lat-accent:#a13a2e; --lat-accent-bright:#c9503e;
+    --lat-ivory:#e8ddc0; --lat-ivory-hi:#fffaf0;
+    --lat-obsidian:#1c1815; --lat-obsidian-hi:#3a332c;
+    --lat-panel-bg: linear-gradient(160deg,#241412,#180b0a);
+    --lat-line:#6b3a2e; --lat-line-2:#4a2620;
+    --lat-frame-1:#a13a2e; --lat-frame-2:#5a2a20; --lat-frame-3:#1f1010;
+    --lat-input-bg:#180b0a;
+  }
+  .lat-app.lat-theme-fresco{
+    --lat-bg:#ece0c4; --lat-bg-2:#e0d0a4;
+    --lat-board-a:#f2e8cc; --lat-board-b:#c1622e;
+    --lat-ink:#3a2510; --lat-ink-dim:#6b5636;
+    --lat-accent:#2f6b7a; --lat-accent-bright:#3f8c9c;
+    --lat-ivory:#fdf6e3; --lat-ivory-hi:#ffffff;
+    --lat-obsidian:#3a2a1c; --lat-obsidian-hi:#5a4632;
+    --lat-panel-bg: linear-gradient(160deg,#f2e6c4,#e6d3a0);
+    --lat-line:#a6854f; --lat-line-2:#8a6d3e;
+    --lat-frame-1:#a6854f; --lat-frame-2:#6b5636; --lat-frame-3:#4a3a22;
+    --lat-input-bg:#f2e6c4;
+  }
+
+  .lat-app *{box-sizing:border-box;}
+  .lat-app{
+    margin:0; padding:0; min-height:100vh; -webkit-text-size-adjust:100%; text-size-adjust:100%;
+    background:
+      radial-gradient(ellipse at 20% -10%, var(--lat-bg-2) 0%, transparent 55%),
+      radial-gradient(ellipse at 100% 110%, var(--lat-bg-2) 0%, transparent 55%),
+      var(--lat-bg);
+    color:var(--lat-ink);
+    font-family:'Crimson Text', Georgia, serif;
+    display:flex; flex-direction:column; align-items:center;
+    transition:background .25s ease, color .25s ease;
+  }
+  .lat-app h1,.lat-app h2,.lat-app h3{ font-family:'Cinzel', Georgia, serif; letter-spacing:0.04em; }
+  .lat-app button{ font-family:'Inter', sans-serif; cursor:pointer; }
+  .lat-app ::selection{ background:var(--lat-accent); color:var(--lat-bg); }
+
+  .lat-wrap{ width:100%; max-width:1180px; padding:18px 16px 40px; }
+  .lat-screen{ display:none; }
+  .lat-screen.lat-active{ display:block; }
+
+  .lat-brand{ display:flex; align-items:center; justify-content:center; gap:14px; padding:10px 0 22px; }
+  .lat-brand .lat-rune{ font-size:22px; color:var(--lat-accent); opacity:0.85; }
+  .lat-brand h1{ font-size:clamp(24px,4vw,38px); margin:0; color:var(--lat-ink); text-shadow:0 2px 0 rgba(0,0,0,0.4), 0 0 22px rgba(184,134,47,0.2); text-transform:uppercase; }
+  .lat-brand .lat-sub{ display:block; font-family:'Crimson Text',serif; font-style:italic; font-size:14px; color:var(--lat-ink-dim); text-align:center; margin-top:2px; }
+
+  .lat-aim-line{ text-align:center; max-width:640px; margin:0 auto 22px; font-family:'Crimson Text',serif; font-size:16.5px; color:var(--lat-accent-bright); font-weight:600; line-height:1.5; }
+
+  .lat-start-wrap{ text-align:center; }
+  .lat-history-blurb{ max-width:920px; margin:0 auto 30px; padding:20px 26px; background:var(--lat-panel-bg); border:1px solid var(--lat-line-2); border-radius:var(--lat-radius); }
+  .lat-history-blurb h4{ font-size:18px; letter-spacing:0.1em; text-transform:uppercase; color:var(--lat-ivory-hi); margin:0 0 10px; text-align:center; }
+  .lat-history-blurb p{ font-family:'Crimson Text',serif; font-size:15.5px; line-height:1.65; color:var(--lat-ink-dim); text-align:center; margin:0; }
+
+  .lat-mode-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin:0 auto 30px; max-width:920px; }
+  .lat-mode-card{ display:flex; flex-direction:column; background:var(--lat-panel-bg); border:1px solid var(--lat-line); border-radius:var(--lat-radius); padding:24px 18px 20px; text-align:left; transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+  .lat-mode-card:hover{ transform:translateY(-3px); border-color:var(--lat-accent); box-shadow:0 10px 24px rgba(0,0,0,0.28); }
+  .lat-mode-card .lat-glyph{ font-size:28px; color:var(--lat-accent-bright); margin-bottom:10px; display:block; }
+  .lat-mode-card h3{ margin:0 0 8px; font-size:18px; color:var(--lat-ivory-hi); }
+  .lat-mode-card p{ margin:0; font-size:14.5px; color:var(--lat-ink-dim); line-height:1.45; }
+  .lat-mode-card button.lat-go{ margin-top:auto; width:100%; padding:9px 10px; background:transparent; border:1px solid var(--lat-accent); color:var(--lat-accent-bright); border-radius:4px; font-size:13px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; }
+  .lat-mode-card button.lat-go:hover{ background:var(--lat-accent); color:var(--lat-bg); }
+
+  .lat-theme-picker{ margin-bottom:26px; }
+  .lat-theme-row{ display:flex; gap:16px; justify-content:space-between; align-items:stretch; flex-wrap:wrap; max-width:920px; margin:0 auto; }
+  .lat-row-group{ display:flex; gap:10px; flex-wrap:wrap; }
+  .lat-swatch-icon{ position:relative; background:var(--lat-frame-2); }
+  .lat-swatch-icon svg{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); display:block; }
+  .lat-theme-swatch{ display:flex; flex-direction:column; align-items:center; gap:7px; background:var(--lat-panel-bg); border:1px solid var(--lat-line); border-radius:6px; padding:10px 14px; color:var(--lat-ink-dim); font-size:12.5px; width:120px; text-align:center; }
+  .lat-theme-swatch.lat-selected{ border-color:var(--lat-accent-bright); color:var(--lat-ivory-hi); box-shadow:0 0 0 1px var(--lat-accent-bright) inset; }
+  .lat-swatch-preview{ width:64px; height:30px; border-radius:4px; display:block; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.3); }
+  .lat-preview-marble{ background:linear-gradient(135deg,#e8ddc0,#b8862f); }
+  .lat-preview-legion{ background:linear-gradient(135deg,#2e2822,#a13a2e); }
+  .lat-preview-fresco{ background:linear-gradient(135deg,#f2e8cc,#2f6b7a); }
+
+  .lat-setup-wrap{ max-width:640px; margin:0 auto; text-align:center; }
+  .lat-setup-wrap h2{ font-size:20px; color:var(--lat-ivory-hi); margin-bottom:4px; }
+  .lat-setup-wrap .lat-hint{ color:var(--lat-ink-dim); font-size:14px; margin-bottom:18px; }
+  .lat-choice-row{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:26px; }
+  .lat-choice-row.lat-three{ grid-template-columns:repeat(3,1fr); }
+  .lat-choice-row.lat-four{ grid-template-columns:repeat(4,1fr); }
+  .lat-choice-btn{ background:var(--lat-panel-bg); border:1px solid var(--lat-line); color:var(--lat-ink); border-radius:var(--lat-radius); padding:16px 10px; font-size:15px; font-family:'Inter',sans-serif; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .lat-choice-btn .lat-swatch{ width:26px; height:26px; border-radius:50%; }
+  .lat-choice-btn.lat-selected{ border-color:var(--lat-accent-bright); box-shadow:0 0 0 2px rgba(184,134,47,0.35) inset; }
+  .lat-choice-btn:hover{ border-color:var(--lat-accent); }
+  .lat-setup-actions{ display:flex; justify-content:center; gap:12px; }
+  .lat-btn-primary{ background:linear-gradient(180deg, var(--lat-accent-bright), var(--lat-accent)); border:none; color:#170f08; font-weight:700; padding:11px 26px; border-radius:5px; font-size:14px; letter-spacing:0.04em; text-transform:uppercase; }
+  .lat-btn-primary:disabled{ opacity:0.35; cursor:not-allowed; }
+  .lat-btn-ghost{ background:transparent; border:1px solid var(--lat-line); color:var(--lat-ink-dim); padding:11px 20px; border-radius:5px; font-size:14px; }
+  .lat-btn-ghost:hover{ border-color:var(--lat-accent); color:var(--lat-accent-bright); }
+  .lat-btn-ghost:disabled{ opacity:0.3; cursor:not-allowed; }
+
+  .lat-game-topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; background:var(--lat-panel-bg); border:1px solid var(--lat-line-2); border-radius:var(--lat-radius); margin-bottom:16px; flex-wrap:wrap; }
+  .lat-turn-pill{ display:flex; align-items:center; gap:8px; padding:6px 14px; border-radius:20px; background:var(--lat-input-bg); border:1px solid var(--lat-line); font-family:'Inter',sans-serif; font-size:13.5px; font-weight:600; }
+  .lat-turn-dot{ width:11px; height:11px; border-radius:50%; }
+  .lat-turn-dot.ivory{ background:var(--lat-ivory-hi); box-shadow:0 0 8px rgba(240,230,206,0.6);}
+  .lat-turn-dot.obsidian{ background:var(--lat-obsidian-hi); box-shadow:0 0 8px rgba(0,0,0,0.6);}
+  .lat-topbar-btns{ display:flex; gap:8px; }
+  .lat-icon-btn{ background:transparent; border:1px solid var(--lat-line); color:var(--lat-ink-dim); padding:7px 12px; border-radius:5px; font-size:12.5px; font-family:'Inter',sans-serif; }
+  .lat-icon-btn:hover{ border-color:var(--lat-accent); color:var(--lat-accent-bright); }
+
+  .lat-game-layout{ display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:20px; align-items:start; }
+  .lat-board-wrap{ display:flex; justify-content:center; }
+  .lat-board-frame{ position:relative; width:min(80vw, 620px); aspect-ratio:1/1; }
+  .lat-board-frame-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .lat-board{
+    display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr);
+    position:absolute; inset:11.5%;
+    box-shadow:0 10px 24px rgba(0,0,0,0.35);
+  }
+  .lat-cell{ position:relative; display:flex; align-items:center; justify-content:center; }
+  .lat-sq-a{ background:var(--lat-board-a); }
+  .lat-sq-b{ background:var(--lat-board-b); }
+  .lat-cell.lat-selected{ box-shadow: inset 0 0 0 3px var(--lat-accent-bright); }
+  .lat-cell.lat-last-from{ box-shadow: inset 0 0 0 2px rgba(184,134,47,0.55); }
+  .lat-cell.lat-last-to{ box-shadow: inset 0 0 0 2px rgba(184,134,47,0.9); }
+  .lat-cell.lat-legal-move::after{ content:""; position:absolute; width:26%; height:26%; border-radius:50%; background:rgba(184,134,47,0.55); box-shadow:0 0 8px rgba(184,134,47,0.6); }
+  .lat-cell.lat-legal-move:hover{ background-color:rgba(184,134,47,0.12); }
+  .lat-cell.lat-hint-from{ box-shadow: inset 0 0 0 3px var(--lat-accent-bright); }
+  .lat-cell.lat-hint-to{ box-shadow: inset 0 0 0 3px var(--lat-accent-bright); background-color:rgba(184,134,47,0.16); }
+  .lat-cell.lat-clickable{ cursor:pointer; }
+
+  .lat-piece{ width:74%; height:74%; border-radius:50%; position:relative; z-index:2; box-shadow:0 3px 6px rgba(0,0,0,0.5), inset 0 2px 3px rgba(255,255,255,0.15), inset 0 -3px 5px rgba(0,0,0,0.35); }
+  .lat-piece-ivory{ background:radial-gradient(circle at 35% 30%, var(--lat-ivory-hi), var(--lat-ivory) 75%); border:1px solid rgba(0,0,0,0.25); }
+  .lat-piece-obsidian{ background:radial-gradient(circle at 35% 30%, var(--lat-obsidian-hi), var(--lat-obsidian) 75%); border:1px solid rgba(0,0,0,0.55); }
+  .lat-piece::before{ content:""; position:absolute; inset:26%; border-radius:50%; box-shadow:0 0 0 1px rgba(0,0,0,0.15); }
+
+  .lat-panel{ background:var(--lat-panel-bg); border:1px solid var(--lat-line-2); border-radius:var(--lat-radius); padding:16px; font-family:'Inter',sans-serif; }
+  .lat-panel h4{ margin:0 0 10px; font-family:'Cinzel',serif; font-size:13px; letter-spacing:0.08em; color:var(--lat-accent-bright); text-transform:uppercase; }
+  .lat-status-box{ font-size:14px; color:var(--lat-ink); line-height:1.5; min-height:40px; }
+  .lat-status-box.lat-thinking{ color:var(--lat-ink-dim); font-style:italic; }
+  .lat-panel .lat-divider{ height:1px; background:var(--lat-line-2); margin:14px 0; }
+  .lat-legend{ font-size:12px; color:var(--lat-ink-dim); line-height:1.9; }
+  .lat-legend .lat-lk{ display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  .lat-hint-text{ font-size:13px; color:var(--lat-ink-dim); margin-top:9px; line-height:1.5; min-height:16px; }
+  .lat-tally{ display:flex; gap:14px; font-family:'Inter',sans-serif; font-size:12.5px; color:var(--lat-ink-dim); margin-bottom:6px; }
+  .lat-tally b{ color:var(--lat-ivory-hi); }
+
+  .lat-demo-caption{ font-size:14.5px; line-height:1.55; color:var(--lat-ivory-hi); font-family:'Crimson Text',serif; }
+  .lat-demo-caption .lat-who{ color:var(--lat-accent-bright); font-weight:600; font-family:'Inter',sans-serif; font-size:11.5px; text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:4px; }
+  .lat-demo-controls{ margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .lat-demo-btn-row{ display:flex; gap:8px; }
+  .lat-demo-btn-row .lat-btn-ghost, .lat-demo-btn-row .lat-btn-primary{ flex:1; padding:10px 8px; }
+  .lat-demo-progress{ font-size:11.5px; color:var(--lat-ink-dim); margin-top:8px; }
+
+  .lat-modal-overlay{ position:fixed; inset:0; background:rgba(8,5,2,0.72); backdrop-filter:blur(2px); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .lat-modal-overlay.lat-active{ display:flex; }
+  .lat-modal{ background:var(--lat-panel-bg); border:1px solid var(--lat-line); border-radius:8px; max-width:700px; width:100%; max-height:85vh; overflow-y:auto; padding:32px 34px 26px; box-shadow:0 30px 60px rgba(0,0,0,0.5); }
+  .lat-modal h2{ margin:0 0 8px; font-size:32px; color:var(--lat-accent-bright); }
+  .lat-modal .lat-modal-sub{ font-size:18px; color:var(--lat-ink-dim); font-style:italic; margin-bottom:20px; font-family:'Crimson Text',serif; }
+  .lat-modal ol{ padding-left:26px; margin:0; }
+  .lat-modal li{ margin-bottom:18px; line-height:1.5; font-size:21px; }
+  .lat-modal li b{ color:var(--lat-accent-bright); }
+  .lat-modal-close-row{ text-align:right; margin-top:18px; }
+
+  .lat-winner-modal{ text-align:center; max-width:420px; }
+  .lat-winner-modal .lat-crest{ font-size:38px; margin-bottom:6px; }
+  .lat-winner-modal h2{ font-size:24px; margin-bottom:6px; }
+  .lat-winner-modal p{ color:var(--lat-ink-dim); font-size:15px; margin-bottom:18px; }
+  .lat-winner-actions{ display:flex; gap:10px; justify-content:center; }
+
+  .lat-score-input{ width:100%; padding:10px 12px; border-radius:5px; border:1px solid var(--lat-line); background:var(--lat-input-bg); color:var(--lat-ink); font-family:'Inter',sans-serif; font-size:14px; margin-bottom:8px; }
+  .lat-save-score-label{ font-size:12px; color:var(--lat-ink-dim); margin-bottom:10px; }
+  .lat-saved-msg{ font-size:13.5px; color:var(--lat-accent-bright); margin-bottom:14px; display:none; }
+
+  .lat-hs-table{ width:100%; border-collapse:collapse; font-family:'Inter',sans-serif; font-size:18px; margin-top:8px; }
+  .lat-hs-table th{ text-align:left; color:var(--lat-accent-bright); font-size:13px; text-transform:uppercase; letter-spacing:0.05em; padding:10px 8px; border-bottom:1px solid var(--lat-line); }
+  .lat-hs-table td{ padding:11px 8px; border-bottom:1px solid var(--lat-line-2); color:var(--lat-ink); }
+  .lat-hs-table tr.lat-hs-you td{ background:rgba(230,191,63,0.14); color:var(--lat-accent-bright); font-weight:600; }
+  .lat-hs-table tr.lat-hs-gap td{ text-align:center; color:var(--lat-ink-dim); letter-spacing:0.3em; padding:6px 8px; border-bottom:none; }
+
+  .lat-victory-flash{ position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; background:rgba(5,3,1,0); opacity:0; pointer-events:none; transition:opacity .35s ease, background .35s ease; }
+  .lat-victory-flash.lat-active{ opacity:1; background:rgba(5,3,1,0.6); pointer-events:auto; }
+  .lat-vf-inner{ text-align:center; }
+  .lat-vf-text{ font-family:'Cinzel',serif; font-weight:800; letter-spacing:0.03em; font-size:clamp(38px,9vw,84px); color:var(--lat-accent-bright); text-shadow:0 0 30px rgba(184,134,47,0.55), 0 4px 0 rgba(0,0,0,0.4); opacity:0; transform:scale(0.4) rotate(-4deg); }
+  .lat-victory-flash.lat-active .lat-vf-text{ animation:latVfPop .65s cubic-bezier(.2,1.4,.4,1) forwards; }
+  .lat-vf-sub{ margin-top:10px; font-family:'Inter',sans-serif; font-size:15px; letter-spacing:0.08em; text-transform:uppercase; color:var(--lat-ink); opacity:0; font-weight:600; }
+  .lat-victory-flash.lat-active .lat-vf-sub{ animation:latVfFadeUp .5s ease .35s forwards; }
+  @keyframes latVfPop{ 0%{opacity:0;transform:scale(0.4) rotate(-4deg);} 55%{opacity:1;transform:scale(1.15) rotate(2deg);} 75%{transform:scale(0.97) rotate(0);} 100%{opacity:1;transform:scale(1) rotate(0);} }
+  @keyframes latVfFadeUp{ 0%{opacity:0;transform:translateY(10px);} 100%{opacity:1;transform:translateY(0);} }
+
+  @media (max-width: 860px){
+    .lat-game-layout{ grid-template-columns:1fr; }
+    .lat-board-frame{ width:min(94vw, 560px); }
+    .lat-mode-grid{ grid-template-columns:1fr; }
+    .lat-choice-row.lat-three{ grid-template-columns:1fr 1fr 1fr; }
+    .lat-choice-row.lat-four{ grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width: 460px){
+    .lat-choice-row.lat-three{ grid-template-columns:1fr; }
+    .lat-choice-row.lat-four{ grid-template-columns:1fr; }
+    .lat-game-topbar{ flex-direction:column; align-items:flex-start; }
+  }
+
+  /* -- short landscape phones: keep board and panel side by side instead of
+     stacking, and size the board off available height rather than width -- */
+  @media (max-width: 860px) and (orientation: landscape){
+    .lat-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
+    .lat-board-wrap{ align-items:center; }
+    .lat-board-frame{ width:auto; height:min(80vh, 460px); }
+    .lat-panel{ max-height:80vh; overflow-y:auto; padding:12px; }
+    .lat-mode-grid{ grid-template-columns:repeat(3,1fr); }
+  }
+
+  .lat-app button:focus-visible, .lat-app .lat-cell:focus-visible{ outline:2px solid var(--lat-accent-bright); outline-offset:2px; }
+</style>
+</head>
+<body>
+<div class="lat-app" id="lat-app">
+<script>
+  (function(){
+    try{
+      var t = localStorage.getItem('latrunculorum_theme');
+      if(t){
+        var el = document.getElementById('lat-app');
+        if(el) el.classList.add('lat-theme-' + JSON.parse(t));
+      }
+    }catch(e){}
+  })();
+</script>
+
+<div class="lat-wrap">
+  <div class="lat-brand">
+    <span class="lat-rune">⚔</span>
+    <div>
+      <h1>Ludus Latrunculorum</h1>
+      <span class="lat-sub">the Roman game of little soldiers</span>
+    </div>
+    <span class="lat-rune">⚔</span>
+  </div>
+
+  <!-- START SCREEN -->
+  <div class="lat-screen lat-active" id="lat-screen-start">
+    <div class="lat-start-wrap">
+      <div class="lat-aim-line">The aim: capture your opponent's soldiers — by trapping them between two of yours — until they have too few pieces left, or no legal move at all.</div>
+
+      <div class="lat-history-blurb">
+        <h4>A Brief History</h4>
+        <p>
+          Ludus latrunculorum — "the game of little soldiers," or more bluntly, "the game of brigands" — was
+          Rome's serious strategy game, played across the empire for over four centuries, from the frontier
+          forts of Roman Britain to the sands of Egypt. Roman writers took it seriously: the poet Ovid
+          recommended it as a mark of a cultured mind, and the satirist Martial praised players skilled enough
+          to win with nothing but a handful of glass counters. No rulebook survives, and the boards that have
+          been unearthed vary in size from find to find, so — as with the other games here — this is a modern
+          scholarly reconstruction, following the version most historians and clubs now treat as standard: an
+          8×8 board, twelve men each side, and the same "custodial" capture later inherited by the Viking tafl
+          games.
+        </p>
+      </div>
+
+      <div class="lat-mode-grid">
+        <div class="lat-mode-card">
+          <span class="lat-glyph">🛡</span>
+          <h3>Two Players</h3>
+          <p>Share the board. Ivory and Obsidian take turns manoeuvring and trapping each other's soldiers.</p>
+          <button class="lat-go" onclick="LAT.startTwoPlayer()">Play</button>
+        </div>
+        <div class="lat-mode-card">
+          <span class="lat-glyph">🏛</span>
+          <h3>Vs. Computer</h3>
+          <p>Choose your side and a difficulty — Easy, Medium, or Hard — and face the AI.</p>
+          <button class="lat-go" onclick="LAT.showScreen('lat-screen-setup')">Play</button>
+        </div>
+        <div class="lat-mode-card">
+          <span class="lat-glyph">📜</span>
+          <h3>Demonstration</h3>
+          <p>Step through a guided opening at your own pace, then take over the board yourself.</p>
+          <button class="lat-go" onclick="LAT.startDemo()">Watch</button>
+        </div>
+      </div>
+
+      <div class="lat-theme-picker">
+        <div class="lat-theme-row" id="lat-theme-row">
+          <div class="lat-row-group">
+            <button class="lat-theme-swatch" onclick="LAT.openInstructions()">
+              <span class="lat-swatch-preview lat-swatch-icon">
+                <svg width="26" height="20" viewBox="0 0 26 20" aria-hidden="true"><path d="M3,2 C7,0 10,0.5 13,3 C16,0.5 19,0 23,2 L23,17 C19,15 16,15.5 13,18 C10,15.5 7,15 3,17 Z" fill="none" stroke="var(--lat-accent-bright)" stroke-width="1.4"/><line x1="13" y1="3" x2="13" y2="18" stroke="var(--lat-accent-bright)" stroke-width="1.2"/></svg>
+              </span>How to play
+            </button>
+            <button class="lat-theme-swatch" onclick="LAT.openTips()">
+              <span class="lat-swatch-preview lat-swatch-icon">
+                <svg width="18" height="20" viewBox="0 0 18 20" aria-hidden="true"><path d="M9,2 C13,2 16,5 16,9 C16,12 14.3,13.6 13,15 C12.2,15.9 12,16.5 12,17.5 L6,17.5 C6,16.5 5.8,15.9 5,15 C3.7,13.6 2,12 2,9 C2,5 5,2 9,2 Z" fill="none" stroke="var(--lat-accent-bright)" stroke-width="1.4"/><line x1="6.5" y1="20" x2="11.5" y2="20" stroke="var(--lat-accent-bright)" stroke-width="1.4"/><line x1="7" y1="17.5" x2="11" y2="17.5" stroke="var(--lat-accent-bright)" stroke-width="1.2"/></svg>
+              </span>Tips
+            </button>
+            <button class="lat-theme-swatch" onclick="LAT.openHighScores()">
+              <span class="lat-swatch-preview lat-swatch-icon">
+                <svg width="22" height="20" viewBox="0 0 22 20" aria-hidden="true"><path d="M6,2 L16,2 L16,9 C16,13 13.5,15 11,15 C8.5,15 6,13 6,9 Z" fill="none" stroke="var(--lat-accent-bright)" stroke-width="1.4"/><path d="M6,4 L2,4 L2,6 C2,8.5 4,10 6,9.5" fill="none" stroke="var(--lat-accent-bright)" stroke-width="1.2"/><path d="M16,4 L20,4 L20,6 C20,8.5 18,10 16,9.5" fill="none" stroke="var(--lat-accent-bright)" stroke-width="1.2"/><line x1="11" y1="15" x2="11" y2="18" stroke="var(--lat-accent-bright)" stroke-width="1.4"/><line x1="7" y1="18" x2="15" y2="18" stroke="var(--lat-accent-bright)" stroke-width="1.4"/></svg>
+              </span>High scores
+            </button>
+          </div>
+          <div class="lat-row-group">
+            <button class="lat-theme-swatch" data-theme="marble" onclick="LAT.setTheme('marble')">
+              <span class="lat-swatch-preview lat-preview-marble"></span>Marble &amp; bronze
+            </button>
+            <button class="lat-theme-swatch" data-theme="legion" onclick="LAT.setTheme('legion')">
+              <span class="lat-swatch-preview lat-preview-legion"></span>Legion
+            </button>
+            <button class="lat-theme-swatch" data-theme="fresco" onclick="LAT.setTheme('fresco')">
+              <span class="lat-swatch-preview lat-preview-fresco"></span>Villa fresco
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP SCREEN -->
+  <div class="lat-screen" id="lat-screen-setup">
+    <div class="lat-setup-wrap">
+      <h2>Choose your soldiers</h2>
+      <div class="lat-hint">Ivory and Obsidian play identically — it's purely a matter of which pieces are yours.</div>
+      <div class="lat-choice-row" id="lat-side-choice">
+        <button class="lat-choice-btn" data-side="ivory" onclick="LAT.pickSide('ivory')">
+          <span class="lat-swatch" style="background:var(--lat-ivory);"></span>Ivory
+        </button>
+        <button class="lat-choice-btn" data-side="obsidian" onclick="LAT.pickSide('obsidian')">
+          <span class="lat-swatch" style="background:var(--lat-obsidian);"></span>Obsidian
+        </button>
+      </div>
+
+      <h2>Choose a difficulty</h2>
+      <div class="lat-hint">This is how hard the computer will play the opposing side.</div>
+      <div class="lat-choice-row lat-four" id="lat-diff-choice">
+        <button class="lat-choice-btn" data-diff="easy" onclick="LAT.pickDiff('easy')">Easy</button>
+        <button class="lat-choice-btn" data-diff="medium" onclick="LAT.pickDiff('medium')">Medium</button>
+        <button class="lat-choice-btn" data-diff="hard" onclick="LAT.pickDiff('hard')">Hard</button>
+        <button class="lat-choice-btn" data-diff="expert" onclick="LAT.pickDiff('expert')">Expert</button>
+      </div>
+
+      <div class="lat-setup-actions">
+        <button class="lat-btn-ghost" onclick="LAT.showScreen('lat-screen-start')">Back</button>
+        <button class="lat-btn-primary" id="lat-setup-start-btn" disabled onclick="LAT.startVsComputer()">Start Game</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="lat-screen" id="lat-screen-game">
+    <div class="lat-game-topbar">
+      <div class="lat-turn-pill">
+        <span class="lat-turn-dot" id="lat-turn-dot"></span>
+        <span id="lat-turn-label">Ivory to move</span>
+      </div>
+      <div class="lat-topbar-btns">
+        <button class="lat-icon-btn" onclick="LAT.openInstructions()">Instructions</button>
+        <button class="lat-icon-btn" onclick="LAT.confirmMenu()">Menu</button>
+      </div>
+    </div>
+
+    <div class="lat-game-layout">
+      <div class="lat-board-wrap">
+        <div class="lat-board-frame" id="lat-board-frame">
+          <div class="lat-board" id="lat-board" role="grid" aria-label="Latrunculi board"></div>
+        </div>
+      </div>
+
+      <div class="lat-panel">
+        <h4>Status</h4>
+        <div class="lat-tally">
+          <span>Ivory: <b id="lat-tally-ivory">12</b></span>
+          <span>Obsidian: <b id="lat-tally-obsidian">12</b></span>
+        </div>
+        <div class="lat-status-box" id="lat-status-box">Ivory moves first.</div>
+
+        <div id="lat-hint-block">
+          <div class="lat-divider"></div>
+          <button class="lat-icon-btn" style="width:100%;" onclick="LAT.showHint()">💡 Show a hint</button>
+          <div class="lat-hint-text" id="lat-hint-text"></div>
+        </div>
+
+        <div id="lat-demo-block" style="display:none;">
+          <div class="lat-divider"></div>
+          <div class="lat-demo-caption" id="lat-demo-caption"></div>
+          <div class="lat-demo-controls" id="lat-demo-controls"></div>
+          <div class="lat-demo-progress" id="lat-demo-progress"></div>
+        </div>
+
+        <div class="lat-divider"></div>
+        <h4>Key</h4>
+        <div class="lat-legend">
+          <div><span class="lat-lk" style="background:var(--lat-ivory);"></span>Ivory soldier</div>
+          <div><span class="lat-lk" style="background:var(--lat-obsidian);"></span>Obsidian soldier</div>
+        </div>
+        <div class="lat-divider"></div>
+        <button class="lat-icon-btn" style="width:100%;" onclick="LAT.restartCurrentMode()">Restart this game</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INSTRUCTIONS MODAL -->
+<div class="lat-modal-overlay" id="lat-instructions-overlay">
+  <div class="lat-modal">
+    <h2>How to Play</h2>
+    <div class="lat-modal-sub">Ludus Latrunculorum, reconstructed from scattered Latin references and archaeological finds.</div>
+    <ol>
+      <li><b>The board and setup.</b> An 8×8 grid. Each side has 12 identical soldiers: a full back row of 8, plus 4 more in the centre of the second row.</li>
+      <li><b>Moving.</b> Every soldier moves like a rook in chess: any number of empty squares in a straight line, horizontally or vertically. No diagonal moves, and pieces can't jump over each other.</li>
+      <li><b>Capturing.</b> Finish your move so that an enemy soldier is sandwiched directly between the piece you just moved and another of your soldiers, in a straight line — and it's captured. Moving your own piece into a gap between two enemies is always safe; only the move that closes the trap captures.</li>
+      <li><b>Multiple captures.</b> One move can spring several traps at once, in different directions, if it completes more than one sandwich simultaneously.</li>
+      <li><b>Winning.</b> You win by reducing your opponent to two soldiers or fewer (too few to trap anything with), or by leaving them with no legal move at all.</li>
+      <li><b>A drawn game.</b> If 60 moves pass in a row with no capture by either side, the game ends in a draw.</li>
+      <li><b>A note on the rules.</b> No Roman rulebook survives. Some reconstructions add a special "Dux" piece, or treat the board's edge as an automatic second trap — this version doesn't use either, following the simpler, more widely used modern standard.</li>
+    </ol>
+    <div class="lat-modal-close-row">
+      <button class="lat-btn-primary" onclick="LAT.closeInstructions()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- TIPS MODAL -->
+<div class="lat-modal-overlay" id="lat-tips-overlay">
+  <div class="lat-modal">
+    <h2>Tips</h2>
+    <div class="lat-modal-sub">Ludus Latrunculorum is a game of lines and traps — with every piece sliding like a rook, a single unguarded lane can be crossed in one move, so control of open space matters as much as the pieces themselves.</div>
+    <ol>
+      <li><b>Walking into a gap is always safe.</b> You can occupy a square between two enemy pieces without being captured — only the piece that closes the trap is ever taken. Use this to plant pieces boldly in contested territory.</li>
+      <li><b>Look for double traps.</b> If a single move closes two sandwiches at once, you capture both. It's worth scanning for even when the more obvious capture looks smaller.</li>
+      <li><b>Don't open long lanes carelessly.</b> Every piece moves any distance in a straight line, so a cleared row or column can let your opponent reach further than you'd expect. Keep some friction on the board rather than clearing paths for them.</li>
+      <li><b>Material matters more as the game thins out.</b> You only need to reduce your opponent to two pieces, so trades that look roughly even early on become far more decisive as both sides run low. Count pieces, not just position, in the endgame.</li>
+      <li><b>Don't let the clock run out on your advantage.</b> If 60 moves pass with no capture, the game's a draw — so if you're ahead, look to force exchanges rather than just holding your ground.</li>
+    </ol>
+    <div class="lat-modal-close-row">
+      <button class="lat-btn-primary" onclick="LAT.closeTips()">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- WINNER MODAL -->
+<div class="lat-modal-overlay" id="lat-winner-overlay">
+  <div class="lat-modal lat-winner-modal">
+    <div class="lat-crest" id="lat-winner-crest">🏆</div>
+    <h2 id="lat-winner-title">Game Over</h2>
+    <p id="lat-winner-desc"></p>
+
+    <div id="lat-save-score-row" style="display:none; text-align:left;">
+      <div class="lat-save-score-label" id="lat-save-score-label">Save your result to the high score list:</div>
+      <input class="lat-score-input" id="lat-score-name-input" type="text" placeholder="Your name" maxlength="20">
+      <button class="lat-btn-primary" style="width:100%;" onclick="LAT.saveScoreFromModal()">Save Score</button>
+    </div>
+    <div class="lat-saved-msg" id="lat-saved-msg">Saved to the high score list.</div>
+
+    <div class="lat-winner-actions">
+      <button class="lat-btn-primary" onclick="LAT.restartCurrentMode()">Play Again</button>
+      <button class="lat-btn-ghost" onclick="LAT.goToMenu()">Main menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIGH SCORES MODAL -->
+<div class="lat-modal-overlay" id="lat-highscores-overlay">
+  <div class="lat-modal">
+    <h2>High Scores</h2>
+    <div class="lat-modal-sub">Wins against the computer, ranked by fewest moves. Top 100 shown, plus your own result if it falls outside that.</div>
+    <table class="lat-hs-table">
+      <thead><tr><th>#</th><th>Name</th><th>Side</th><th>Moves</th><th>Difficulty</th></tr></thead>
+      <tbody id="lat-hs-tbody"></tbody>
+    </table>
+    <div class="lat-modal-close-row">
+      <button class="lat-btn-primary" onclick="LAT.closeHighScores()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- MENU CONFIRM MODAL -->
+<div class="lat-modal-overlay" id="lat-menu-overlay">
+  <div class="lat-modal lat-winner-modal">
+    <div class="lat-crest">⚔</div>
+    <h2>Leave this game?</h2>
+    <p>Your current game will be lost.</p>
+    <div class="lat-winner-actions">
+      <button class="lat-btn-primary" onclick="LAT.goToMenu()">Yes, go to menu</button>
+      <button class="lat-btn-ghost" onclick="LAT.closeMenuConfirm()">Stay</button>
+    </div>
+  </div>
+</div>
+
+<!-- VICTORY FLASH -->
+<div class="lat-victory-flash" id="lat-victory-flash">
+  <div class="lat-vf-inner">
+    <div class="lat-vf-text" id="lat-vf-text">YOU WIN</div>
+    <div class="lat-vf-sub" id="lat-vf-sub">Ivory</div>
+  </div>
+</div>
+
+</div><!-- /.lat-app -->
+
+<script>
+(function(){
+'use strict';
+/* =========================================================
+   LUDUS LATRUNCULORUM — engine, AI, and UI
+   Everything in this closure is private. The only thing exposed
+   globally is window.LAT, built at the bottom, for onclick use.
+   Board values: 0 empty, 1 ivory, 2 obsidian.
+   ========================================================= */
+
+const SIZE = 8;
+const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+
+function inBounds(r,c){ return r>=0 && r<SIZE && c>=0 && c<SIZE; }
+function otherSide(s){ return s==='ivory' ? 'obsidian' : 'ivory'; }
+function sideOf(v){ if(v===1) return 'ivory'; if(v===2) return 'obsidian'; return null; }
+
+function freshBoard(){
+  const b = Array.from({length:SIZE}, ()=>Array(SIZE).fill(0));
+  for(let c=0;c<8;c++) b[7][c]=1;
+  for(let c=2;c<=5;c++) b[6][c]=1;
+  for(let c=0;c<8;c++) b[0][c]=2;
+  for(let c=2;c<=5;c++) b[1][c]=2;
+  return b;
+}
+
+function cloneBoard(b){ return b.map(row=>row.slice()); }
+
+function getLegalMovesOnBoard(board,r,c){
+  const val = board[r][c];
+  if(val===0) return [];
+  const moves=[];
+  for(const [dr,dc] of DIRS){
+    let nr=r+dr, nc=c+dc;
+    while(inBounds(nr,nc) && board[nr][nc]===0){
+      moves.push([nr,nc]);
+      nr+=dr; nc+=dc;
+    }
+  }
+  return moves;
+}
+
+function getAllMovesOnBoard(board, side){
+  const moves=[];
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      if(sideOf(board[r][c])===side){
+        for(const [tr,tc] of getLegalMovesOnBoard(board,r,c)){
+          moves.push({r,c,tr,tc});
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+// Returns captured [{r,c,side}] and mutates board.
+function applyMoveOnBoard(board,r,c,tr,tc){
+  const piece = board[r][c];
+  const side = sideOf(piece);
+  board[r][c]=0;
+  board[tr][tc]=piece;
+  const captured=[];
+  for(const [dr,dc] of DIRS){
+    const nr=tr+dr, nc=tc+dc;
+    if(!inBounds(nr,nc)) continue;
+    const nv = board[nr][nc];
+    if(nv===0) continue;
+    const nSide = sideOf(nv);
+    if(nSide===side) continue;
+    const fr=nr+dr, fc=nc+dc;
+    if(!inBounds(fr,fc)) continue;
+    const fv = board[fr][fc];
+    if(fv!==0 && sideOf(fv)===side){
+      captured.push({r:nr,c:nc,side:nSide});
+      board[nr][nc]=0;
+    }
+  }
+  return captured;
+}
+
+function countPieces(board, side){
+  let n=0;
+  for(let r=0;r<SIZE;r++) for(let c=0;c<SIZE;c++) if(sideOf(board[r][c])===side) n++;
+  return n;
+}
+
+/* ---------------- AI / hint heuristic ---------------- */
+function scoreBoard(board){
+  const ivory = countPieces(board,'ivory');
+  const obsidian = countPieces(board,'obsidian');
+  let s = (ivory - obsidian) * 10;
+  const ivoryMoves = getAllMovesOnBoard(board,'ivory').length;
+  const obsidianMoves = getAllMovesOnBoard(board,'obsidian').length;
+  s += (ivoryMoves - obsidianMoves) * 0.15;
+  return s; // positive favours ivory
+}
+
+function terminalScore(board){
+  const ivory = countPieces(board,'ivory');
+  const obsidian = countPieces(board,'obsidian');
+  if(obsidian<=2) return 100000;
+  if(ivory<=2) return -100000;
+  return null;
+}
+
+function aiChooseMove(side, difficulty, board){
+  const moves = getAllMovesOnBoard(board, side);
+  if(moves.length===0) return null;
+
+  if(difficulty==='easy'){
+    return moves[Math.floor(Math.random()*moves.length)];
+  }
+  if(difficulty==='expert'){
+    return aiChooseMoveExpert(side, board);
+  }
+
+  const scored = moves.map(m=>{
+    const b = cloneBoard(board);
+    const captured = applyMoveOnBoard(b,m.r,m.c,m.tr,m.tc);
+    let val = terminalScore(b);
+    if(val===null) val = scoreBoard(b) + captured.length*(side==='ivory'?6:-6);
+    return {m, val, board:b};
+  });
+  scored.sort((a,b)=> side==='ivory' ? b.val-a.val : a.val-b.val);
+
+  if(difficulty==='medium'){
+    const top = scored.slice(0, Math.min(3, scored.length));
+    const pick = Math.random()<0.72 ? top[0] : top[Math.floor(Math.random()*top.length)];
+    return pick.m;
+  }
+
+  const candidates = scored.slice(0, Math.min(12, scored.length));
+  const oppSide = otherSide(side);
+  let best=null;
+  for(const cand of candidates){
+    if(Math.abs(cand.val)>=100000){
+      if(!best || (side==='ivory' ? cand.val>best.val : cand.val<best.val)) best={m:cand.m, val:cand.val};
+      continue;
+    }
+    const oppMoves = getAllMovesOnBoard(cand.board, oppSide);
+    let finalVal;
+    if(oppMoves.length===0){
+      finalVal = side==='ivory' ? 100000 : -100000;
+    } else {
+      finalVal = oppSide==='ivory' ? -Infinity : Infinity;
+      const oppSample = oppMoves.slice(0, Math.min(20, oppMoves.length));
+      for(const om of oppSample){
+        const b2 = cloneBoard(cand.board);
+        const cap2 = applyMoveOnBoard(b2, om.r, om.c, om.tr, om.tc);
+        let v2 = terminalScore(b2);
+        if(v2===null) v2 = scoreBoard(b2) + cap2.length*(oppSide==='ivory'?6:-6);
+        if(oppSide==='ivory'){ if(v2>finalVal) finalVal=v2; }
+        else { if(v2<finalVal) finalVal=v2; }
+      }
+    }
+    if(!best || (side==='ivory' ? finalVal>best.val : finalVal<best.val)) best={m:cand.m, val:finalVal};
+  }
+  return best ? best.m : candidates[0].m;
+}
+
+/* One-ply-deeper alpha-beta search used by 'expert': like Hard, but looks a
+   further ply ahead (my move -> opponent's best reply -> my best counter-
+   reply), with the deeper plies pruned for speed since the 8x8 board's
+   sliding rook-like moves give a much larger branching factor than the
+   other games' boards. */
+function minimaxLat(board, side, depth, alpha, beta){
+  const term = terminalScore(board);
+  if(term!==null) return term;
+  if(depth===0) return scoreBoard(board);
+  const moves = getAllMovesOnBoard(board, side);
+  if(moves.length===0){
+    return side==='ivory' ? -50000 : 50000;
+  }
+  const scoredMoves = moves.map(m=>{
+    const b=cloneBoard(board);
+    const captured = applyMoveOnBoard(b,m.r,m.c,m.tr,m.tc);
+    let quick = terminalScore(b);
+    if(quick===null) quick = scoreBoard(b) + captured.length*(side==='ivory'?6:-6);
+    return {m,b,quick};
+  });
+  scoredMoves.sort((a,b)=> side==='ivory'? b.quick-a.quick : a.quick-b.quick);
+  const pruned = scoredMoves.slice(0, Math.min(6, scoredMoves.length));
+  if(side==='ivory'){
+    let value=-Infinity;
+    for(const {b} of pruned){
+      const v = minimaxLat(b, 'obsidian', depth-1, alpha, beta);
+      value=Math.max(value,v); alpha=Math.max(alpha,value);
+      if(alpha>=beta) break;
+    }
+    return value;
+  } else {
+    let value=Infinity;
+    for(const {b} of pruned){
+      const v = minimaxLat(b, 'ivory', depth-1, alpha, beta);
+      value=Math.min(value,v); beta=Math.min(beta,value);
+      if(alpha>=beta) break;
+    }
+    return value;
+  }
+}
+function aiChooseMoveExpert(side, board){
+  const moves = getAllMovesOnBoard(board, side);
+  if(moves.length===0) return null;
+  const scoredMoves = moves.map(m=>{
+    const b=cloneBoard(board);
+    const captured = applyMoveOnBoard(b,m.r,m.c,m.tr,m.tc);
+    let quick = terminalScore(b);
+    if(quick===null) quick = scoreBoard(b) + captured.length*(side==='ivory'?6:-6);
+    return {m,b,quick};
+  });
+  scoredMoves.sort((a,b)=> side==='ivory'? b.quick-a.quick : a.quick-b.quick);
+  const rootPruned = scoredMoves.slice(0, Math.min(16, scoredMoves.length));
+  const oppSide = otherSide(side);
+  let best=null, alpha=-Infinity, beta=Infinity;
+  for(const {m,b} of rootPruned){
+    const val = minimaxLat(b, oppSide, 2, alpha, beta);
+    if(!best || (side==='ivory'? val>best.val : val<best.val)) best={m,val};
+    if(side==='ivory') alpha=Math.max(alpha,val); else beta=Math.min(beta,val);
+  }
+  return best ? best.m : rootPruned[0].m;
+}
+
+/* ---------------- persistence ---------------- */
+const storage = {
+  get(key, fallback){ try{ const v=localStorage.getItem(key); return v!==null?JSON.parse(v):fallback; }catch(e){ return fallback; } },
+  set(key,val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch(e){} }
+};
+const HS_SHOWN = 100;
+let highScores = storage.get('latrunculorum_highscores', []);
+let lastPlayerName = storage.get('latrunculorum_playername', '');
+let lastScoreTs = storage.get('latrunculorum_last_score_ts', null);
+
+function recordScore(name, side, moves, difficulty){
+  const ts = Date.now() + Math.random();
+  highScores.push({name, side, moves, difficulty, ts});
+  highScores.sort((a,b)=>a.moves-b.moves);
+  highScores = highScores.slice(0,1000);
+  storage.set('latrunculorum_highscores', highScores);
+  lastScoreTs = ts;
+  storage.set('latrunculorum_last_score_ts', ts);
+}
+function escapeHtml(str){ const d=document.createElement('div'); d.textContent=str; return d.innerHTML; }
+function hsRowHtml(s, rank){
+  const mine = (lastScoreTs!==null && s.ts===lastScoreTs) ? ' lat-hs-you' : '';
+  return `<tr class="${mine.trim()}"><td>${rank}</td><td>${escapeHtml(s.name)}</td><td>${s.side==='ivory'?'Ivory':'Obsidian'}</td><td>${s.moves}</td><td>${escapeHtml(s.difficulty)}</td></tr>`;
+}
+function renderHighScores(){
+  const tbody = document.getElementById('lat-hs-tbody');
+  if(highScores.length===0){
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--lat-ink-dim);padding:16px;">No scores yet — win a game against the computer to set the first record.</td></tr>';
+    return;
+  }
+  const top = highScores.slice(0, HS_SHOWN);
+  let rows = top.map((s,i)=>hsRowHtml(s,i+1)).join('');
+  const yourIdx = lastScoreTs!==null ? highScores.findIndex(s=>s.ts===lastScoreTs) : -1;
+  if(yourIdx >= HS_SHOWN){
+    rows += '<tr class="lat-hs-gap"><td colspan="5">⋯</td></tr>';
+    rows += hsRowHtml(highScores[yourIdx], yourIdx+1);
+  }
+  tbody.innerHTML = rows;
+}
+function openHighScores(){ renderHighScores(); document.getElementById('lat-highscores-overlay').classList.add('lat-active'); }
+function closeHighScores(){ document.getElementById('lat-highscores-overlay').classList.remove('lat-active'); }
+
+function setTheme(name){
+  const el = document.getElementById('lat-app');
+  el.className = 'lat-app lat-theme-' + name;
+  storage.set('latrunculorum_theme', name);
+  document.querySelectorAll('.lat-theme-swatch').forEach(b=>b.classList.toggle('lat-selected', b.dataset.theme===name));
+}
+function initThemeUI(){
+  const el = document.getElementById('lat-app');
+  const match = el.className.match(/lat-theme-(\w+)/);
+  const current = (match && match[1]) || storage.get('latrunculorum_theme','marble');
+  setTheme(current || 'marble');
+}
+
+/* =========================================================
+   GAME STATE + UI
+   ========================================================= */
+const state = {
+  board: freshBoard(),
+  turn: 'ivory',
+  mode: null,
+  humanSide: null, aiSide: null, difficulty: null,
+  selected: null,
+  legalDests: [],
+  gameOver: false, winner: null, winReason: null,
+  lastMove: null,
+  moveCount: 0,
+  noCaptureStreak: 0,
+  demoIndex: 0,
+  demoHandedOff: false,
+  hintMove: null,
+  locked: false
+};
+
+const DEMO_SCRIPT = [
+  { from:[1,4], to:[4,4], side:'obsidian', who:'Obsidian', text:"Obsidian marches a soldier boldly into the centre of the board." },
+  { from:[6,3], to:[4,3], side:'ivory', who:'Ivory', text:"Ivory challenges them from the west, standing directly beside the intruder." },
+  { from:[0,1], to:[2,1], side:'obsidian', who:'Obsidian', text:"Obsidian brings another soldier into play on the flank." },
+  { from:[6,5], to:[4,5], side:'ivory', who:'Ivory', text:"Ivory completes the trap from the east — Obsidian's soldier at the centre is captured, sandwiched between two Ivory pieces!" },
+  { from:[1,2], to:[3,2], side:'obsidian', who:'Obsidian', text:"Obsidian regroups, advancing another soldier to keep the pressure on." },
+  { from:[7,0], to:[5,0], side:'ivory', who:'Ivory', text:"Ivory brings a flank soldier forward too, tightening the net." }
+];
+
+function showScreen(id){
+  document.querySelectorAll('.lat-screen').forEach(s=>s.classList.remove('lat-active'));
+  document.getElementById(id).classList.add('lat-active');
+}
+
+let setupSide=null, setupDiff=null;
+function pickSide(side){
+  setupSide=side;
+  document.querySelectorAll('#lat-side-choice .lat-choice-btn').forEach(b=>b.classList.toggle('lat-selected', b.dataset.side===side));
+  updateSetupButton();
+}
+function pickDiff(diff){
+  setupDiff=diff;
+  document.querySelectorAll('#lat-diff-choice .lat-choice-btn').forEach(b=>b.classList.toggle('lat-selected', b.dataset.diff===diff));
+  updateSetupButton();
+}
+function updateSetupButton(){ document.getElementById('lat-setup-start-btn').disabled = !(setupSide && setupDiff); }
+
+function startVsComputer(){
+  resetState();
+  state.mode='vsAI'; state.humanSide=setupSide; state.aiSide = setupSide==='ivory'?'obsidian':'ivory'; state.difficulty=setupDiff;
+  showScreen('lat-screen-game');
+  document.getElementById('lat-demo-block').style.display='none';
+  document.getElementById('lat-hint-block').style.display='block';
+  render();
+  setStatus(state.turn===state.humanSide ? "Your move." : "Computer is thinking…");
+  maybeTriggerAI();
+}
+function startTwoPlayer(){
+  resetState();
+  state.mode='two';
+  showScreen('lat-screen-game');
+  document.getElementById('lat-demo-block').style.display='none';
+  document.getElementById('lat-hint-block').style.display='block';
+  render();
+  setStatus("Ivory moves first.");
+}
+
+function resetState(){
+  state.board = freshBoard();
+  state.turn='ivory';
+  state.selected=null;
+  state.legalDests=[];
+  state.gameOver=false; state.winner=null; state.winReason=null;
+  state.lastMove=null;
+  state.moveCount=0;
+  state.noCaptureStreak=0;
+  state.demoIndex=0; state.demoHandedOff=false;
+  state.hintMove=null;
+  state.locked=false;
+  closeWinnerModal();
+  const ht=document.getElementById('lat-hint-text'); if(ht) ht.textContent='';
+}
+function restartCurrentMode(){
+  closeWinnerModal();
+  const mode = state.mode;
+  if(mode==='vsAI'){
+    const h=state.humanSide, d=state.difficulty;
+    resetState();
+    state.mode='vsAI'; state.humanSide=h; state.aiSide= h==='ivory'?'obsidian':'ivory'; state.difficulty=d;
+    document.getElementById('lat-demo-block').style.display='none';
+    document.getElementById('lat-hint-block').style.display='block';
+    render();
+    setStatus(state.turn===state.humanSide ? "Your move." : "Computer is thinking…");
+    maybeTriggerAI();
+  } else if(mode==='two'){
+    resetState();
+    state.mode='two';
+    document.getElementById('lat-demo-block').style.display='none';
+    document.getElementById('lat-hint-block').style.display='block';
+    render();
+    setStatus("Ivory moves first.");
+  } else {
+    startDemo();
+  }
+}
+function goToMenu(){ closeWinnerModal(); closeMenuConfirm(); showScreen('lat-screen-start'); }
+function confirmMenu(){ document.getElementById('lat-menu-overlay').classList.add('lat-active'); }
+function closeMenuConfirm(){ document.getElementById('lat-menu-overlay').classList.remove('lat-active'); }
+
+function openInstructions(){ document.getElementById('lat-instructions-overlay').classList.add('lat-active'); }
+function closeInstructions(){ document.getElementById('lat-instructions-overlay').classList.remove('lat-active'); }
+function openTips(){ document.getElementById('lat-tips-overlay').classList.add('lat-active'); }
+function closeTips(){ document.getElementById('lat-tips-overlay').classList.remove('lat-active'); }
+
+function showVictoryFlash(winner, callback){
+  const el = document.getElementById('lat-victory-flash');
+  const textEl = document.getElementById('lat-vf-text');
+  const subEl = document.getElementById('lat-vf-sub');
+  let headline, sub;
+  if(winner==='draw'){
+    headline = 'DRAW';
+    sub = '60 moves with no capture';
+    textEl.style.color = 'var(--lat-ink)';
+  } else if(state.mode==='vsAI'){
+    headline = (winner===state.humanSide) ? 'YOU WIN' : 'YOU LOSE';
+    sub = state.winReason==='pieces' ? 'Opponent reduced to 2 soldiers' : 'Opponent has no legal move';
+    textEl.style.color = winner==='ivory' ? 'var(--lat-ivory-hi)' : 'var(--lat-obsidian-hi)';
+  } else {
+    headline = (winner==='ivory' ? 'IVORY WINS' : 'OBSIDIAN WINS');
+    sub = state.winReason==='pieces' ? 'Opponent reduced to 2 soldiers' : 'Opponent has no legal move';
+    textEl.style.color = winner==='ivory' ? 'var(--lat-ivory-hi)' : 'var(--lat-obsidian-hi)';
+  }
+  textEl.textContent = headline;
+  subEl.textContent = sub;
+  el.classList.add('lat-active');
+  setTimeout(()=>{ el.classList.remove('lat-active'); if(callback) callback(); }, 2000);
+}
+
+function showWinnerModal(){
+  const overlay = document.getElementById('lat-winner-overlay');
+  const title = document.getElementById('lat-winner-title');
+  const desc = document.getElementById('lat-winner-desc');
+  if(state.winner==='draw'){
+    document.getElementById('lat-winner-crest').textContent = '🤝';
+    title.textContent = 'Draw';
+    desc.textContent = '60 moves passed with no capture by either side.';
+  } else {
+    document.getElementById('lat-winner-crest').textContent = '🏆';
+    title.textContent = (state.winner==='ivory'?'Ivory':'Obsidian') + ' Wins!';
+    desc.textContent = state.winReason==='pieces'
+      ? "The opponent's army has been reduced to two soldiers or fewer."
+      : "The opponent has no legal move left.";
+  }
+
+  const saveRow = document.getElementById('lat-save-score-row');
+  const savedMsg = document.getElementById('lat-saved-msg');
+  savedMsg.style.display='none';
+  const qualifies = state.mode==='vsAI' && state.winner===state.humanSide;
+  if(qualifies){
+    document.getElementById('lat-save-score-label').textContent =
+      `You won in ${state.moveCount} move${state.moveCount===1?'':'s'}. Save your result to the high score list:`;
+    document.getElementById('lat-score-name-input').value = lastPlayerName;
+    saveRow.style.display='block';
+  } else {
+    saveRow.style.display='none';
+  }
+  overlay.classList.add('lat-active');
+}
+function closeWinnerModal(){ document.getElementById('lat-winner-overlay').classList.remove('lat-active'); }
+function saveScoreFromModal(){
+  const input = document.getElementById('lat-score-name-input');
+  const name = (input.value || '').trim().slice(0,20) || 'Anonymous';
+  lastPlayerName = name;
+  storage.set('latrunculorum_playername', name);
+  recordScore(name, state.humanSide, state.moveCount, state.difficulty);
+  document.getElementById('lat-save-score-row').style.display='none';
+  document.getElementById('lat-saved-msg').style.display='block';
+}
+
+function setStatus(text, thinking){
+  const box = document.getElementById('lat-status-box');
+  box.textContent = text;
+  box.classList.toggle('lat-thinking', !!thinking);
+}
+
+/* Decorative "Bronze & Ivory" frame around the board — a twisted rope
+   guilloche border with a laurel wreath medallion in each corner, drawn
+   once as a static SVG (not regenerated on every render). Uses CSS
+   variables for colour so it re-themes automatically. */
+function buildBoardFrame(){
+  const host = document.getElementById('lat-board-frame');
+  if(!host || host.querySelector('.lat-board-frame-svg')) return;
+  const NS='http://www.w3.org/2000/svg';
+  function el(t,a){ const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); return e; }
+  const svg = el('svg',{ class:'lat-board-frame-svg', viewBox:'0 0 640 640', role:'img' });
+  svg.appendChild(el('title',{})); svg.lastChild.textContent='Decorative board frame';
+  const bronze='var(--lat-frame-1)';
+  const wood='var(--lat-frame-3)';
+  const outer=20, boardSz=600, border=54;
+  svg.appendChild(el('rect',{x:outer,y:outer,width:boardSz,height:boardSz,fill:wood}));
+
+  function guilloche(x1,y1,x2,y2,horiz){
+    const len = horiz? x2-x1 : y2-y1;
+    const n = Math.floor(len/20);
+    for(let i=0;i<n;i++){
+      const cx = horiz? x1+i*20+10 : x1;
+      const cy = horiz? y1 : y1+i*20+10;
+      const rx = horiz?9:5, ry = horiz?5:9;
+      svg.appendChild(el('ellipse',{cx:cx,cy:cy,rx:rx,ry:ry,fill:'none',stroke:bronze,'stroke-width':2.2}));
+    }
+  }
+  guilloche(outer+border, outer+24, outer+boardSz-border, outer+24, true);
+  guilloche(outer+border, outer+boardSz-24, outer+boardSz-border, outer+boardSz-24, true);
+  guilloche(outer+24, outer+border, outer+24, outer+boardSz-border, false);
+  guilloche(outer+boardSz-24, outer+border, outer+boardSz-24, outer+boardSz-border, false);
+
+  function wreath(cx,cy,r){
+    for(let i=0;i<10;i++){
+      const g=el('g',{transform:'translate('+cx+','+cy+') rotate('+(i*36)+')'});
+      g.appendChild(el('ellipse',{cx:0,cy:-r,rx:5,ry:9,fill:bronze,opacity:0.85}));
+      svg.appendChild(g);
+    }
+    svg.appendChild(el('circle',{cx:cx,cy:cy,r:r*0.5,fill:'none',stroke:bronze,'stroke-width':2}));
+  }
+  wreath(outer+42,outer+42,26); wreath(outer+boardSz-42,outer+42,26);
+  wreath(outer+42,outer+boardSz-42,26); wreath(outer+boardSz-42,outer+boardSz-42,26);
+
+  const gx0=outer+border, gSz=boardSz-border*2;
+  svg.appendChild(el('rect',{x:gx0,y:gx0,width:gSz,height:gSz,fill:'none',stroke:bronze,'stroke-width':3}));
+
+  host.insertBefore(svg, host.firstChild);
+}
+
+function render(){
+  const board = document.getElementById('lat-board');
+  board.innerHTML='';
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      const cell = document.createElement('div');
+      cell.className='lat-cell '+((r+c)%2===0?'lat-sq-a':'lat-sq-b');
+      cell.dataset.r=r; cell.dataset.c=c;
+
+      if(state.selected && state.selected.r===r && state.selected.c===c) cell.className+=' lat-selected';
+      if(state.legalDests.some(([lr,lc])=>lr===r&&lc===c)) cell.className+=' lat-legal-move';
+      if(state.lastMove){
+        if(state.lastMove.from[0]===r && state.lastMove.from[1]===c) cell.className+=' lat-last-from';
+        if(state.lastMove.to[0]===r && state.lastMove.to[1]===c) cell.className+=' lat-last-to';
+      }
+      if(state.hintMove){
+        if(state.hintMove.r===r && state.hintMove.c===c) cell.className+=' lat-hint-from';
+        if(state.hintMove.tr===r && state.hintMove.tc===c) cell.className+=' lat-hint-to';
+      }
+
+      const val = state.board[r][c];
+      if(val!==0){
+        const p = document.createElement('div');
+        p.className = 'lat-piece ' + (val===1?'lat-piece-ivory':'lat-piece-obsidian');
+        cell.appendChild(p);
+      }
+
+      const interactive = canInteract();
+      const isDest = state.legalDests.some(([lr,lc])=>lr===r&&lc===c);
+      if((interactive && sideOf(val)===state.turn) || (interactive && isDest)) cell.className+=' lat-clickable';
+
+      cell.addEventListener('click', ()=>cellClick(r,c));
+      board.appendChild(cell);
+    }
+  }
+
+  document.getElementById('lat-tally-ivory').textContent = countPieces(state.board,'ivory');
+  document.getElementById('lat-tally-obsidian').textContent = countPieces(state.board,'obsidian');
+  const dot = document.getElementById('lat-turn-dot');
+  dot.className = 'lat-turn-dot ' + state.turn;
+  document.getElementById('lat-turn-label').textContent =
+    (state.turn==='ivory' ? 'Ivory' : 'Obsidian') + ' to move';
+}
+
+function canInteract(){
+  if(state.gameOver || state.locked) return false;
+  if(state.mode==='demo' && !state.demoHandedOff) return false;
+  if(state.mode==='vsAI' && state.turn!==state.humanSide) return false;
+  return true;
+}
+
+function clearHint(){
+  state.hintMove=null;
+  const ht=document.getElementById('lat-hint-text');
+  if(ht) ht.textContent='';
+}
+function showHint(){
+  if(!canInteract()) return;
+  const move = aiChooseMove(state.turn, 'hard', state.board);
+  if(!move){ document.getElementById('lat-hint-text').textContent = "No legal moves are available."; return; }
+  state.hintMove = move;
+  document.getElementById('lat-hint-text').textContent =
+    `Try the soldier at row ${move.r+1}, column ${move.c+1} → row ${move.tr+1}, column ${move.tc+1}.`;
+  render();
+}
+
+function cellClick(r,c){
+  if(!canInteract()) return;
+  const val = state.board[r][c];
+
+  if(state.selected){
+    const isDest = state.legalDests.some(([lr,lc])=>lr===r&&lc===c);
+    if(isDest){
+      performMove(state.selected.r, state.selected.c, r, c);
+      return;
+    }
+    if(sideOf(val)===state.turn){
+      selectPiece(r,c);
+      return;
+    }
+    clearSelection();
+    render();
+    return;
+  } else {
+    if(sideOf(val)===state.turn){
+      selectPiece(r,c);
+    }
+  }
+}
+
+function selectPiece(r,c){
+  state.selected={r,c};
+  state.legalDests = getLegalMovesOnBoard(state.board,r,c);
+  clearHint();
+  render();
+}
+function clearSelection(){
+  state.selected=null;
+  state.legalDests=[];
+}
+
+function performMove(r,c,tr,tc){
+  const mover = state.turn;
+  const captured = applyMoveOnBoard(state.board,r,c,tr,tc);
+  state.lastMove={ from:[r,c], to:[tr,tc] };
+  state.moveCount++;
+  state.noCaptureStreak = captured.length>0 ? 0 : state.noCaptureStreak+1;
+  clearSelection();
+  clearHint();
+
+  evaluateAfterMove(mover, captured.length);
+}
+
+function evaluateAfterMove(moverSide, captureCount){
+  const opp = otherSide(moverSide);
+  const oppCount = countPieces(state.board, opp);
+  let ended=false;
+
+  if(oppCount<=2){
+    state.gameOver=true; state.winner=moverSide; state.winReason='pieces'; ended=true;
+  } else if(state.noCaptureStreak>=60){
+    state.gameOver=true; state.winner='draw'; state.winReason='draw'; ended=true;
+  }
+
+  if(!ended){
+    const oppMoves = getAllMovesOnBoard(state.board, opp);
+    if(oppMoves.length===0){
+      state.gameOver=true; state.winner=moverSide; state.winReason='stalemate'; ended=true;
+    } else {
+      state.turn = opp;
+    }
+  }
+
+  render();
+
+  if(state.gameOver){
+    if(state.winner==='draw'){
+      setStatus("The game is a draw — 60 moves with no capture.");
+    } else {
+      setStatus((state.winner==='ivory' ? "Ivory has" : "Obsidian has") + " won!");
+    }
+    showVictoryFlash(state.winner, showWinnerModal);
+    return;
+  }
+
+  let msg = captureCount>0 ? `${captureCount} piece${captureCount>1?'s':''} captured. ` : '';
+  if(state.mode==='vsAI'){
+    msg += state.turn===state.humanSide ? "Your move." : "Computer is thinking…";
+  } else if(state.mode==='two'){
+    msg += (state.turn==='ivory' ? "Ivory" : "Obsidian") + " to move.";
+  }
+  setStatus(msg, state.mode==='vsAI' && state.turn!==state.humanSide);
+
+  maybeTriggerAI();
+}
+
+function maybeTriggerAI(){
+  if(state.mode!=='vsAI' || state.gameOver) return;
+  if(state.turn!==state.aiSide) return;
+  state.locked=true;
+  render();
+  setStatus("Computer is thinking…", true);
+  setTimeout(()=>{
+    const move = aiChooseMove(state.aiSide, state.difficulty, state.board);
+    state.locked=false;
+    if(!move){
+      state.gameOver=true; state.winner=state.humanSide; state.winReason='stalemate';
+      render(); setStatus("The computer has no moves."); showVictoryFlash(state.winner, showWinnerModal);
+      return;
+    }
+    const captured = applyMoveOnBoard(state.board, move.r, move.c, move.tr, move.tc);
+    state.lastMove={ from:[move.r,move.c], to:[move.tr,move.tc] };
+    state.moveCount++;
+    state.noCaptureStreak = captured.length>0 ? 0 : state.noCaptureStreak+1;
+    evaluateAfterMove(state.aiSide, captured.length);
+  }, 550);
+}
+
+function startDemo(){
+  resetState();
+  state.mode='demo';
+  showScreen('lat-screen-game');
+  document.getElementById('lat-demo-block').style.display='block';
+  document.getElementById('lat-hint-block').style.display='none';
+  goToDemoIndex(0);
+  setStatus("Step through the opening moves, then take over the board.");
+}
+
+function goToDemoIndex(index){
+  index = Math.max(0, Math.min(index, DEMO_SCRIPT.length));
+  state.board = freshBoard();
+  state.lastMove = null;
+  for(let k=0;k<index;k++){
+    const step = DEMO_SCRIPT[k];
+    applyMoveOnBoard(state.board, step.from[0], step.from[1], step.to[0], step.to[1]);
+    state.lastMove = { from:step.from, to:step.to };
+  }
+  state.demoIndex = index;
+  state.turn = index < DEMO_SCRIPT.length ? DEMO_SCRIPT[index].side : otherSide(DEMO_SCRIPT[DEMO_SCRIPT.length-1].side);
+  render();
+  renderDemoPanel();
+}
+
+function renderDemoPanel(){
+  const caption = document.getElementById('lat-demo-caption');
+  const controls = document.getElementById('lat-demo-controls');
+  const progress = document.getElementById('lat-demo-progress');
+  const i = state.demoIndex;
+
+  if(i===0){
+    caption.innerHTML = `<span class="lat-who">Opening</span>Ivory moves first. Click "Next move" to begin — you can always step back.`;
+  } else {
+    const step = DEMO_SCRIPT[i-1];
+    caption.innerHTML = `<span class="lat-who">${step.who}</span>${step.text}`;
+  }
+
+  controls.innerHTML='';
+  const row = document.createElement('div');
+  row.className='lat-demo-btn-row';
+  const backBtn = document.createElement('button');
+  backBtn.className='lat-btn-ghost';
+  backBtn.textContent='← Back';
+  backBtn.disabled = (i===0);
+  backBtn.onclick = ()=>goToDemoIndex(i-1);
+  row.appendChild(backBtn);
+
+  if(i < DEMO_SCRIPT.length){
+    const nextBtn = document.createElement('button');
+    nextBtn.className='lat-btn-primary';
+    nextBtn.textContent = 'Next move';
+    nextBtn.onclick = ()=>goToDemoIndex(i+1);
+    row.appendChild(nextBtn);
+    controls.appendChild(row);
+    progress.textContent = `Move ${i+1} of ${DEMO_SCRIPT.length}`;
+  } else {
+    controls.appendChild(row);
+    const note = document.createElement('div');
+    note.style.fontSize='13.5px'; note.style.color='var(--lat-ivory-hi)'; note.style.margin='10px 0 8px';
+    note.textContent = 'Opening complete — choose a side to finish the game against an easy computer opponent:';
+    controls.appendChild(note);
+    const b1=document.createElement('button'); b1.className='lat-btn-primary'; b1.style.width='100%'; b1.style.marginBottom='8px'; b1.textContent='Play as Ivory';
+    b1.onclick=()=>handoffFromDemo('ivory');
+    const b2=document.createElement('button'); b2.className='lat-btn-ghost'; b2.style.width='100%'; b2.textContent='Play as Obsidian';
+    b2.onclick=()=>handoffFromDemo('obsidian');
+    controls.appendChild(b1); controls.appendChild(b2);
+    progress.textContent = 'Opening complete';
+  }
+}
+
+function handoffFromDemo(side){
+  state.mode='vsAI';
+  state.humanSide=side;
+  state.aiSide = side==='ivory' ? 'obsidian' : 'ivory';
+  state.difficulty='easy';
+  state.demoHandedOff=true;
+  state.moveCount=0;
+  document.getElementById('lat-demo-block').style.display='none';
+  document.getElementById('lat-hint-block').style.display='block';
+  render();
+  setStatus(state.turn===state.humanSide ? "Your move." : "Computer is thinking…");
+  maybeTriggerAI();
+}
+
+/* ---------- init ---------- */
+initThemeUI();
+buildBoardFrame();
+render();
+
+/* ---------- expose only what onclick="" handlers need ---------- */
+window.LAT = {
+  showScreen, startTwoPlayer, startVsComputer, startDemo,
+  pickSide, pickDiff,
+  openInstructions, closeInstructions,
+  openTips, closeTips,
+  openHighScores, closeHighScores,
+  saveScoreFromModal,
+  confirmMenu, closeMenuConfirm, goToMenu,
+  restartCurrentMode, showHint, setTheme
+};
+
+})();
+</script>
+</body>
+</html>
