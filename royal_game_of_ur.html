@@ -86,6 +86,14 @@
   ::selection{ background:var(--ur-accent); color:var(--ur-bg); }
 
   .ur-wrap{ width:100%; max-width:1200px; padding:18px 16px 40px; }
+  .ur-home-row{ max-width:920px; margin:0 auto; }
+  .ur-home-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:64px; height:30px; background:var(--ur-frame-2); border:1px solid var(--ur-line);
+    border-radius:4px; padding:0; transition:border-color .15s ease;
+  }
+  .ur-home-btn:hover{ border-color:var(--ur-accent-bright); }
+  .ur-home-btn svg{ display:block; }
   .ur-screen{ display:none; }
   .ur-screen.ur-active{ display:block; }
 
@@ -360,6 +368,11 @@
 </script>
 
 <div class="ur-wrap">
+  <div class="ur-home-row">
+    <button class="ur-home-btn" onclick="window.location.href='index.html'" aria-label="Back to the games hub" title="Back to the games hub">
+      <svg width="22" height="20" viewBox="0 0 22 20" aria-hidden="true"><path d="M2,10 L11,2 L20,10" fill="none" stroke="var(--ur-accent-bright)" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5,8.5 L4.5,18 L17.5,18 L17.5,8.5" fill="none" stroke="var(--ur-accent-bright)" stroke-width="1.4" stroke-linejoin="round"/><path d="M8,18 L8,12.5 L14,12.5 L14,18" fill="none" stroke="var(--ur-accent-bright)" stroke-width="1.2"/></svg>
+    </button>
+  </div>
   <div class="ur-brand">
     <span class="ur-rune">𒀭</span>
     <div>
