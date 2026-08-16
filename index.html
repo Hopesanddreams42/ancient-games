@@ -148,6 +148,7 @@
   .grid-section{ padding:36px 0 10px; }
   .grid{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px;
+    position:relative;
   }
   .card{
     background:var(--hub-bg-elev); border:1px solid var(--hub-line); border-radius:var(--hub-radius);
@@ -181,23 +182,25 @@
   }
   .play-btn:hover{ filter:brightness(1.12); }
 
-  /* ---------- Support section ---------- */
-  .support-section{ padding:54px 0 20px; text-align:center; }
-  .support-card{
+  /* ---------- Ko-fi support card ----------
+     Absolutely positioned inside the grid rather than counted as a grid
+     item — so it doesn't affect the games' own column layout. It's
+     pinned to the grid's own bottom-right corner, which lines up with
+     the bottom of whichever card ends up in the last row (currently
+     Puluc's) and the right edge of the grid above it. */
+  .kofi-card{
+    position:absolute; bottom:0; right:0; width:min(480px, 100%);
     background:var(--hub-bg-elev); border:1px solid var(--hub-line); border-radius:var(--hub-radius);
-    max-width:560px; margin:0 auto; padding:32px 28px;
+    padding:28px 26px; text-align:center;
   }
-  .support-card h2{ font-size:20px; margin:0 0 10px; color:var(--hub-ink); }
-  .support-card p{ color:var(--hub-ink-dim); font-size:15px; margin:0 0 20px; }
+  .kofi-card h2{ font-size:19px; margin:0 0 10px; color:var(--hub-ink); }
+  .kofi-card p{ color:var(--hub-ink-dim); font-size:14.5px; margin:0 0 18px; }
   .kofi-btn{
     display:inline-flex; align-items:center; gap:8px; font-family:'Inter',sans-serif; font-weight:600;
     font-size:14px; color:var(--hub-bg); background:var(--hub-verdigris); border:none; border-radius:6px;
     padding:11px 22px; text-decoration:none; transition:filter 0.15s ease;
   }
   .kofi-btn:hover{ filter:brightness(1.12); }
-  .support-note{
-    font-family:'Inter',sans-serif; font-size:11.5px; color:var(--hub-ink-faint); margin-top:14px;
-  }
 
   /* ---------- Footer ---------- */
   footer{ padding:40px 0 60px; text-align:center; }
@@ -207,6 +210,7 @@
   @media (max-width:640px){
     .hero{ padding:44px 0 30px; }
     .grid{ grid-template-columns:1fr; }
+    .kofi-card{ position:static; width:auto; margin:22px 0 0; }
   }
 </style>
 </head>
@@ -390,22 +394,23 @@
         </div>
       </article>
 
+      <!-- Ko-fi support card — absolutely positioned in the grid's own
+           bottom-right corner (see .kofi-card CSS), so it doesn't affect
+           the games' 3-per-row layout. -->
+      <div class="kofi-card">
+        <h2>Keep the Collection Growing</h2>
+        <p>
+          Every game here is free, ad-light by choice, and built to work offline once you've loaded it.
+          If you'd like to help keep it that way — or fund the next reconstruction — a tip goes a long way.
+        </p>
+        <a class="kofi-btn" href="https://ko-fi.com/stephen42" target="_blank" rel="noopener" data-support-provider="ko-fi">☕ Support on Ko-fi</a>
+      </div>
+
     </div>
   </section>
 
-  <!-- Ad slot: in-content, between the collection and the support section. -->
+  <!-- Ad slot: in-content, between the collection and the footer. -->
   <div class="ad-slot ad-slot--incontent" data-ad-size="300x250" aria-hidden="true"><span>Reserved space</span></div>
-
-  <section class="support-section">
-    <div class="support-card">
-      <h2>Keep the Collection Growing</h2>
-      <p>
-        Every game here is free, ad-light by choice, and built to work offline once you've loaded it.
-        If you'd like to help keep it that way — or fund the next reconstruction — a tip goes a long way.
-      </p>
-      <a class="kofi-btn" href="https://ko-fi.com/stephen42" target="_blank" rel="noopener" data-support-provider="ko-fi">☕ Support on Ko-fi</a>
-    </div>
-  </section>
 
   <!-- Ad slot: footer leaderboard. -->
   <div class="ad-slot ad-slot--leaderboard" data-ad-size="728x90" aria-hidden="true"><span>Reserved space</span></div>
