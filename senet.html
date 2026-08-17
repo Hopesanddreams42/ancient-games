@@ -223,6 +223,32 @@
   .sen-board-corner.sen-tr{ top:-17px; right:-17px; }
   .sen-board-corner.sen-bl{ bottom:-17px; left:-17px; }
   .sen-board-corner.sen-br{ bottom:-17px; right:-17px; }
+
+  /* On narrow phones the decorative frame's padding/border/corner-overhang
+     eats a fixed ~120px regardless of screen size — proportionally a much
+     bigger bite out of a phone than a tablet. Shrink it here so more of
+     the available width goes to the actual board instead. The corner
+     medallions keep the same "half overlapping the frame" relationship
+     (inset = half the medallion's own size) just at a smaller scale.
+
+     The board's own wrapper also breaks out of .sen-wrap's normal side
+     padding here (the same full-bleed technique already used for
+     .sen-kheker-frieze-full above), trading it for a smaller fixed
+     margin — this only affects the board section specifically, not any
+     other element on the page. */
+  @media (max-width:560px){
+    .sen-board-wrap{
+      width:100vw; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw);
+      padding-left:8px; padding-right:8px;
+    }
+    .sen-board-frame-outer{ padding:5px 3px; border-width:1px; }
+    .sen-board-corner{ width:14px; height:14px; font-size:9px; }
+    .sen-board-corner.sen-tl{ top:-7px; left:-7px; }
+    .sen-board-corner.sen-tr{ top:-7px; right:-7px; }
+    .sen-board-corner.sen-bl{ bottom:-7px; left:-7px; }
+    .sen-board-corner.sen-br{ bottom:-7px; right:-7px; }
+  }
+
   .sen-board{
     display:grid; grid-template-columns:repeat(10,1fr); grid-template-rows:repeat(3,1fr);
     width:min(100%, 760px); aspect-ratio:10/3;
@@ -921,21 +947,33 @@ function showScreen(id){
    answer regardless of layout complexity (side panel, grid tracks, etc).
 
    Senet specifically also has a padded/bordered wrapper (.sen-board-
-   frame-outer, 40px padding + 3px border each side) between the
-   measured wrap and the board itself, plus corner medallions that
-   overhang 17px past that wrapper on each side — all of that has to be
-   reserved, or the board is sized as if it had the wrap's full width to
-   itself and the frame pushes the right edge off-screen. */
+   frame-outer) between the measured wrap and the board itself, plus
+   corner medallions that overhang past that wrapper — all of that has
+   to be reserved, or the board is sized as if it had the wrap's full
+   width to itself and the frame pushes the right edge off-screen.
+   That overhead is read from the actual computed styles (not a
+   hardcoded number) so it automatically stays correct if the frame's
+   padding/border/corner size ever changes at any breakpoint. */
 function fitBoard(){
   const wrap = document.querySelector('.sen-board-wrap');
   const board = document.getElementById('sen-board');
   const frieze = document.getElementById('sen-kheker-frieze');
-  if(!wrap || !board) return;
+  const frameOuter = document.querySelector('.sen-board-frame-outer');
+  const corner = document.querySelector('.sen-board-corner.sen-tl');
+  if(!wrap || !board || !frameOuter) return;
   board.style.width = '';
   board.style.height = '';
   const availW = wrap.clientWidth;
   if(availW <= 0) return;
-  const FRAME_OVERHEAD = (40+3+17) * 2; // frame-outer padding + border + corner overhang, both sides
+  const fs = getComputedStyle(frameOuter);
+  const padH = (parseFloat(fs.paddingLeft)||0) + (parseFloat(fs.paddingRight)||0);
+  const borH = (parseFloat(fs.borderLeftWidth)||0) + (parseFloat(fs.borderRightWidth)||0);
+  let overhang = 17;
+  if(corner){
+    const leftInset = parseFloat(getComputedStyle(corner).left);
+    if(!isNaN(leftInset) && leftInset < 0) overhang = -leftInset;
+  }
+  const FRAME_OVERHEAD = padH + borH + overhang*2;
   const RATIO = 10/3; // width / height
   let w = Math.max(200, Math.min(availW - FRAME_OVERHEAD, 760));
   let h = w / RATIO;

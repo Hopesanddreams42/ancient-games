@@ -4,7 +4,7 @@
 // requests (ad scripts, affiliate/support widgets) — those must always be
 // fetched live, never cached, so they stay current and consent-aware.
 
-const CACHE_VERSION = 'ancient-games-v12';
+const CACHE_VERSION = 'ancient-games-v13';
 
 const PRECACHE_URLS = [
   './',

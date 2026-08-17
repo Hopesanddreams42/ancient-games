@@ -176,14 +176,46 @@
 
   .ur-game-layout{ display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:20px; align-items:start; }
 
+  .ur-board-column{ display:flex; flex-direction:column; min-width:0; }
   .ur-board-wrap{ display:flex; justify-content:center; }
+  /* On narrow phones, let the board's own wrapper break out of .ur-wrap's
+     normal 16px side padding (same full-bleed technique used for
+     Senet's board), trading it for a smaller fixed margin — this only
+     affects the board section, not any other element on the page. */
+  @media (max-width:560px){
+    .ur-board-wrap{
+      width:100vw; margin-left:calc(50% - 50vw); margin-right:calc(50% - 50vw);
+      padding-left:8px; padding-right:8px;
+    }
+  }
+
+  /* The "in hand"/"home" trays only get embedded as narrow flanking
+     columns inside the board grid on wider screens, where there's room
+     for a label, count, and dot grid without squeezing the board's
+     other rows open. Below 860px they render here instead — same data,
+     same click targets, just laid out with real room to breathe. */
+  .ur-mobile-trays{ display:none; }
+  @media (max-width:860px){
+    .ur-mobile-trays{
+      display:grid; grid-template-columns:repeat(4,1fr); gap:8px;
+      max-width:min(100%, 720px); margin:14px auto 0;
+    }
+    .ur-mobile-trays .ur-tray{
+      background:var(--ur-panel-bg); border:1px solid var(--ur-line);
+      border-radius:6px; padding:8px 4px; gap:4px;
+    }
+    .ur-mobile-trays .ur-tray-label{ font-size:9.5px; }
+    .ur-mobile-trays .ur-tray-count{ font-size:17px; }
+    .ur-mobile-trays .ur-tray-dots{ max-width:100%; }
+  }
+
   .ur-board{
     display:grid; grid-template-columns:0.75fr repeat(8,1fr) 0.75fr; grid-template-rows:repeat(3,1fr);
     width:min(100%, 720px); aspect-ratio:9.5/3;
     box-shadow:0 18px 40px rgba(0,0,0,0.4);
     background:var(--ur-board-bg); position:relative; gap:2px; padding:2px;
   }
-  .ur-cell{ position:relative; display:flex; align-items:center; justify-content:center; border-radius:2px; box-sizing:border-box; box-shadow:var(--frame-edges, none); }
+  .ur-cell{ position:relative; display:flex; align-items:center; justify-content:center; border-radius:2px; box-sizing:border-box; box-shadow:var(--frame-edges, none); min-width:0; min-height:0; }
   .ur-cell.ur-blank{ background:transparent; }
 
   /* -- lane squares (private, uncapturable) -- */
@@ -232,10 +264,10 @@
   .ur-cell.ur-hint-cell{ box-shadow:var(--frame-edges, none), inset 0 0 0 3px var(--ur-accent-bright) !important; }
   @keyframes pulseGlow{ 0%,100%{ opacity:0.45; } 50%{ opacity:1; } }
 
-  .ur-tray{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-family:'Inter',sans-serif; padding:2px; }
-  .ur-tray .ur-tray-label{ font-size:8.5px; letter-spacing:0.06em; color:var(--ur-ink-dim); text-transform:uppercase; }
-  .ur-tray .ur-tray-count{ font-size:15px; font-weight:700; color:var(--ur-ink); }
-  .ur-tray-dots{ display:flex; flex-wrap:wrap; gap:2px; justify-content:center; max-width:44px; }
+  .ur-tray{ display:flex; flex-direction:column; align-items:stretch; justify-content:center; gap:3px; font-family:'Inter',sans-serif; padding:2px; overflow:hidden; }
+  .ur-tray .ur-tray-label{ font-size:8.5px; letter-spacing:0.06em; color:var(--ur-ink-dim); text-transform:uppercase; text-align:center; }
+  .ur-tray .ur-tray-count{ font-size:15px; font-weight:700; color:var(--ur-ink); text-align:center; }
+  .ur-tray-dots{ display:flex; flex-wrap:wrap; gap:2px; justify-content:center; max-width:100%; }
   .ur-tray-dot{ width:8px; height:8px; border-radius:50%; }
   .ur-tray.ur-movable{ cursor:pointer; }
   .ur-tray.ur-movable::after{ content:""; position:absolute; inset:2px; border-radius:6px; box-shadow:0 0 0 2px var(--ur-accent-bright); animation:pulseGlow 1.1s ease-in-out infinite; pointer-events:none; }
@@ -259,6 +291,15 @@
   .ur-dice-area{ text-align:center; }
   .ur-dice-row{ display:flex; gap:16px; justify-content:center; margin:12px 0 14px; perspective:380px; flex-wrap:wrap; }
   .ur-die-wrap{ width:48px; height:64px; position:relative; }
+  /* Shrink the dice a bit on mobile to help everything fit on screen
+     without scrolling. Scaling the outer wrapper (rather than touching
+     the die's internal 3D face geometry or its tumble animation)
+     shrinks the whole rendered die as-is; the negative margin reclaims
+     the empty space a transform scale leaves behind in the layout. */
+  @media (max-width:860px){
+    .ur-dice-row{ gap:10px; }
+    .ur-die-wrap{ transform:scale(0.78); margin:-7px -5px; }
+  }
   .ur-die3d{ width:100%; height:100%; position:relative; transform-style:preserve-3d; transform:rotateX(-18deg) rotateY(25deg); transition:transform .25s cubic-bezier(.34,1.5,.5,1), filter .25s ease; }
   .ur-die3d.ur-rolling{ animation:dieTumble .9s cubic-bezier(.3,.9,.4,1); }
   .ur-die3d.ur-marked{ transform:rotateX(-18deg) rotateY(25deg) translateY(-10px) scale(1.1); filter:drop-shadow(0 8px 10px rgba(0,0,0,0.45)) drop-shadow(0 0 12px var(--ur-accent-bright)); }
@@ -361,7 +402,25 @@
   @media (max-width: 860px) and (orientation: landscape){
     .ur-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .ur-board-wrap{ align-items:center; }
-    .ur-panel{ max-height:80vh; overflow-y:auto; padding:12px; }
+    .ur-panel{
+      max-height:80vh; padding:10px;
+      display:flex; flex-direction:column; overflow-y:auto;
+    }
+    /* Status + dice/roll are the things you need every single turn, so
+       they're compacted to fit without scrolling in the normal case.
+       Hint/Key/Restart are used far less often — that section scrolls
+       on its own if it doesn't fit. overflow-y:auto stays on the outer
+       panel too (rather than hidden) as a safety net: if the pinned
+       part is ever taller than the available space on some device,
+       it's still reachable by scrolling instead of being clipped off
+       with no way to get to the roll button at all. */
+    .ur-panel-extra{ overflow-y:auto; flex:1 1 auto; min-height:0; }
+    .ur-panel h4{ margin:0 0 4px; }
+    .ur-status-box{ min-height:0; }
+    .ur-panel .ur-divider{ margin:6px 0; }
+    .ur-roll-result{ font-size:20px; min-height:0; margin-bottom:4px; }
+    .ur-dice-row{ margin:4px 0 8px; }
+    .ur-roll-btn{ padding:8px 20px; }
     .ur-mode-grid{ grid-template-columns:repeat(3,1fr); }
   }
 
@@ -509,8 +568,11 @@
     </div>
 
     <div class="ur-game-layout">
-      <div class="ur-board-wrap">
-        <div class="ur-board" id="ur-board" role="grid" aria-label="Royal Game of Ur board"></div>
+      <div class="ur-board-column">
+        <div class="ur-board-wrap">
+          <div class="ur-board" id="ur-board" role="grid" aria-label="Royal Game of Ur board"></div>
+        </div>
+        <div class="ur-mobile-trays" id="ur-mobile-trays"></div>
       </div>
 
       <div class="ur-panel">
@@ -526,29 +588,31 @@
           </div>
         </div>
 
-        <div id="ur-hint-block">
-          <div class="ur-divider"></div>
-          <button class="ur-icon-btn" style="width:100%;" onclick="UR.showHint()">💡 Show a hint</button>
-          <div class="ur-hint-text" id="ur-hint-text"></div>
-        </div>
+        <div class="ur-panel-extra">
+          <div id="ur-hint-block">
+            <div class="ur-divider"></div>
+            <button class="ur-icon-btn" style="width:100%;" onclick="UR.showHint()">💡 Show a hint</button>
+            <div class="ur-hint-text" id="ur-hint-text"></div>
+          </div>
 
-        <div id="ur-demo-block" style="display:none;">
-          <div class="ur-divider"></div>
-          <div class="ur-demo-caption" id="ur-demo-caption"></div>
-          <div class="ur-demo-controls" id="ur-demo-controls"></div>
-          <div class="ur-demo-progress" id="ur-demo-progress"></div>
-        </div>
+          <div id="ur-demo-block" style="display:none;">
+            <div class="ur-divider"></div>
+            <div class="ur-demo-caption" id="ur-demo-caption"></div>
+            <div class="ur-demo-controls" id="ur-demo-controls"></div>
+            <div class="ur-demo-progress" id="ur-demo-progress"></div>
+          </div>
 
-        <div class="ur-divider"></div>
-        <h4>Key</h4>
-        <div class="ur-legend">
-          <div><span class="ur-lk" style="background:var(--ur-gold-piece);"></span>Gold piece</div>
-          <div><span class="ur-lk" style="background:var(--ur-silver-piece);"></span>Silver piece</div>
-          <div><span class="ur-lk" style="background:var(--ur-rosette-a);"></span>Rosette — safe + extra roll</div>
-          <div><span class="ur-lk" style="background:var(--ur-war-solid);"></span>War path — capture zone</div>
+          <div class="ur-divider"></div>
+          <h4>Key</h4>
+          <div class="ur-legend">
+            <div><span class="ur-lk" style="background:var(--ur-gold-piece);"></span>Gold piece</div>
+            <div><span class="ur-lk" style="background:var(--ur-silver-piece);"></span>Silver piece</div>
+            <div><span class="ur-lk" style="background:var(--ur-rosette-a);"></span>Rosette — safe + extra roll</div>
+            <div><span class="ur-lk" style="background:var(--ur-war-solid);"></span>War path — capture zone</div>
+          </div>
+          <div class="ur-divider"></div>
+          <button class="ur-icon-btn" style="width:100%;" onclick="UR.restartCurrentMode()">Restart this game</button>
         </div>
-        <div class="ur-divider"></div>
-        <button class="ur-icon-btn" style="width:100%;" onclick="UR.restartCurrentMode()">Restart this game</button>
       </div>
     </div>
   </div>
@@ -909,7 +973,12 @@ function fitBoard(){
   board.style.height = '';
   const availW = wrap.clientWidth;
   if(availW <= 0) return;
-  const RATIO = 9.5/3; // width / height
+  // Must match render()'s isCompact check exactly — the board has a
+  // different number of grid columns (and so a different width/height
+  // ratio for square cells) depending on whether the "in hand"/"home"
+  // trays are embedded in it or shown separately below it.
+  const isCompact = window.matchMedia('(max-width:860px)').matches;
+  const RATIO = isCompact ? (8/3) : (9.5/3); // width / height
   let w = Math.min(availW, 720);
   let h = w / RATIO;
   const isLandscapeNarrow = window.matchMedia('(max-width:860px) and (orientation:landscape)').matches;
@@ -923,8 +992,12 @@ function fitBoard(){
   board.style.width = w + 'px';
   board.style.height = h + 'px';
 }
-window.addEventListener('resize', fitBoard);
-window.addEventListener('orientationchange', ()=>setTimeout(fitBoard, 50));
+function fitBoardAndRerender(){
+  render();
+  fitBoard();
+}
+window.addEventListener('resize', fitBoardAndRerender);
+window.addEventListener('orientationchange', ()=>setTimeout(fitBoardAndRerender, 50));
 
 /* ---------- setup screen ---------- */
 let setupSide=null, setupDiff=null;
@@ -1081,6 +1154,7 @@ function setStatus(text, thinking){
 
 function render(){
   const board = document.getElementById('ur-board');
+  const mobileTrays = document.getElementById('ur-mobile-trays');
   board.innerHTML='';
 
   const occ = {}; // "r,c" -> {side, idx}
@@ -1095,21 +1169,41 @@ function render(){
   const movSet = movableIdxSet();
   const canClick = canInteract();
 
-  // hand tray gold (row0,col0)
-  board.appendChild(buildTray('gold', 0, 1, occ, movSet, canClick));
-  // hand tray silver (row2,col0)
-  board.appendChild(buildTray('silver', 2, 1, occ, movSet, canClick));
-  // filler at row1,col0 and row1,col9 (decorative blank)
-  board.appendChild(buildBlank(2,1));
-  board.appendChild(buildBlank(2,10));
-  // home tray gold (row0,col9)
-  board.appendChild(buildHome('gold', 0, 10));
-  // home tray silver (row2,col9)
-  board.appendChild(buildHome('silver', 2, 10));
+  // Below ~860px there isn't enough width for the "in hand"/"home" tray
+  // columns to hold a label, count, and dot grid without either
+  // squeezing the whole board (forcing rows open to fit their content)
+  // or overflowing sideways — so on narrow screens those trays move to
+  // a separate row below the board entirely, and the board itself
+  // becomes a plain 8-column grid (no flanking tray columns needed).
+  const isCompact = window.matchMedia('(max-width:860px)').matches;
+  board.style.gridTemplateColumns = isCompact ? 'repeat(8,1fr)' : '0.75fr repeat(8,1fr) 0.75fr';
+
+  if(isCompact){
+    if(mobileTrays){
+      mobileTrays.innerHTML='';
+      mobileTrays.appendChild(buildTray('gold', null, null, occ, movSet, canClick));
+      mobileTrays.appendChild(buildHome('gold', null, null));
+      mobileTrays.appendChild(buildTray('silver', null, null, occ, movSet, canClick));
+      mobileTrays.appendChild(buildHome('silver', null, null));
+    }
+  } else {
+    if(mobileTrays) mobileTrays.innerHTML='';
+    // hand tray gold (row0,col0)
+    board.appendChild(buildTray('gold', 0, 1, occ, movSet, canClick));
+    // hand tray silver (row2,col0)
+    board.appendChild(buildTray('silver', 2, 1, occ, movSet, canClick));
+    // filler at row1,col0 and row1,col9 (decorative blank)
+    board.appendChild(buildBlank(2,1));
+    board.appendChild(buildBlank(2,10));
+    // home tray gold (row0,col9)
+    board.appendChild(buildHome('gold', 0, 10));
+    // home tray silver (row2,col9)
+    board.appendChild(buildHome('silver', 2, 10));
+  }
 
   for(let r=0;r<3;r++){
     for(let c=0;c<8;c++){
-      const gridCol = c+2;
+      const gridCol = isCompact ? c+1 : c+2;
       const gridRow = r+1;
       if((r===0||r===2) && (c===4||c===5)){
         board.appendChild(buildBlank(gridRow, gridCol));
@@ -1191,7 +1285,8 @@ function buildBlank(gridRow, gridCol){
 function buildTray(side, gridRow, gridCol, occ, movSet, canClick){
   const wrap=document.createElement('div');
   wrap.className = 'ur-cell ur-tray ur-tray-cell';
-  wrap.style.gridRow=gridRow+1; wrap.style.gridColumn=gridCol;
+  if(gridRow!==null) wrap.style.gridRow=gridRow+1;
+  if(gridCol!==null) wrap.style.gridColumn=gridCol;
   const count = state.pieces[side].filter(p=>p===0).length;
   const label=document.createElement('div'); label.className = 'ur-tray-label'; label.textContent=(side==='gold'?'Gold':'Silver')+' in hand';
   const num=document.createElement('div'); num.className = 'ur-tray-count'; num.textContent=count;
@@ -1217,7 +1312,8 @@ function buildTray(side, gridRow, gridCol, occ, movSet, canClick){
 function buildHome(side, gridRow, gridCol){
   const wrap=document.createElement('div');
   wrap.className = 'ur-cell ur-tray ur-tray-cell';
-  wrap.style.gridRow=gridRow+1; wrap.style.gridColumn=gridCol;
+  if(gridRow!==null) wrap.style.gridRow=gridRow+1;
+  if(gridCol!==null) wrap.style.gridColumn=gridCol;
   const count = state.pieces[side].filter(p=>p===15).length;
   const label=document.createElement('div'); label.className = 'ur-tray-label'; label.textContent=(side==='gold'?'Gold':'Silver')+' home';
   const num=document.createElement('div'); num.className = 'ur-tray-count'; num.textContent=count+'/7';
