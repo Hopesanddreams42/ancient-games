@@ -201,7 +201,7 @@
   .hnef-choice-btn .hnef-swatch{ width:26px; height:26px; border-radius:50%; }
   .hnef-choice-btn.hnef-selected{ border-color:var(--hnef-brass-bright); box-shadow:0 0 0 2px rgba(184,134,59,0.35) inset; }
   .hnef-choice-btn:hover{ border-color:var(--hnef-brass); }
-  .hnef-setup-actions{ display:flex; justify-content:center; gap:12px; }
+  .hnef-setup-actions{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
   .hnef-btn-primary{
     background:linear-gradient(180deg, var(--hnef-brass-bright), var(--hnef-brass));
     border:none; color:#170f08; font-weight:700; padding:11px 26px; border-radius:5px;
@@ -321,7 +321,7 @@
   .hnef-winner-modal .hnef-crest{ font-size:38px; margin-bottom:6px; }
   .hnef-winner-modal h2{ font-size:24px; margin-bottom:6px; }
   .hnef-winner-modal p{ color:var(--hnef-parchment-dim); font-size:15px; margin-bottom:18px; }
-  .hnef-winner-actions{ display:flex; gap:10px; justify-content:center; }
+  .hnef-winner-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
 
   .hnef-score-input{
     width:100%; padding:10px 12px; border-radius:5px; border:1px solid var(--hnef-line);
@@ -355,7 +355,7 @@
   @media (max-width: 800px) and (orientation: landscape){
     .hnef-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .hnef-board-wrap{ align-items:center; }
-    .hnef-board-frame{ width:auto; max-width:100%; height:min(82vh, 460px); }
+    .hnef-board-frame{ width:min(100%, 460px, 82vh); height:auto; }
     .hnef-panel{ max-height:82vh; overflow-y:auto; padding:12px; }
     .hnef-mode-grid{ grid-template-columns:repeat(3,1fr); }
   }

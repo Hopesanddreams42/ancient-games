@@ -164,7 +164,7 @@
   .sen-choice-btn .sen-swatch{ width:26px; height:26px; border-radius:50%; }
   .sen-choice-btn.sen-selected{ border-color:var(--sen-accent-bright); box-shadow:0 0 0 2px rgba(201,162,39,0.35) inset; }
   .sen-choice-btn:hover{ border-color:var(--sen-accent); }
-  .sen-setup-actions{ display:flex; justify-content:center; gap:12px; }
+  .sen-setup-actions{ display:flex; justify-content:center; gap:12px; flex-wrap:wrap; }
   .sen-btn-primary{ background:linear-gradient(180deg, var(--sen-accent-bright), var(--sen-accent)); border:none; color:#170f08; font-weight:700; padding:11px 26px; border-radius:5px; font-size:14px; letter-spacing:0.04em; text-transform:uppercase; }
   .sen-btn-primary:disabled{ opacity:0.35; cursor:not-allowed; }
   .sen-btn-ghost{ background:transparent; border:1px solid var(--sen-line); color:var(--sen-ink-dim); padding:11px 20px; border-radius:5px; font-size:14px; }
@@ -316,7 +316,7 @@
   .sen-winner-modal .sen-crest{ font-size:38px; margin-bottom:6px; }
   .sen-winner-modal h2{ font-size:24px; margin-bottom:6px; }
   .sen-winner-modal p{ color:var(--sen-ink-dim); font-size:15px; margin-bottom:18px; }
-  .sen-winner-actions{ display:flex; gap:10px; justify-content:center; }
+  .sen-winner-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
 
   .sen-score-input{ width:100%; padding:10px 12px; border-radius:5px; border:1px solid var(--sen-line); background:var(--sen-input-bg); color:var(--sen-ink); font-family:'Inter',sans-serif; font-size:14px; margin-bottom:8px; }
   .sen-save-score-label{ font-size:12px; color:var(--sen-ink-dim); margin-bottom:10px; }
@@ -359,7 +359,7 @@
   @media (max-width: 860px) and (orientation: landscape){
     .sen-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .sen-board-wrap{ align-items:center; }
-    .sen-board{ width:auto; max-width:100%; height:min(80vh, 460px); }
+    .sen-board{ width:min(100%, 760px, calc(min(80vh, 460px) * 10 / 3)); height:auto; }
     .sen-panel{ max-height:80vh; overflow-y:auto; padding:12px; }
     .sen-mode-grid{ grid-template-columns:repeat(3,1fr); }
   }
