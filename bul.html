@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  html,body{margin:0;padding:0;height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%;}
+  html,body{margin:0;padding:0;height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%; overflow-x:hidden; }
   /* =========================================================
      FUTURE-PROOFING NOTES (for later combination with other games):
      - Every class and element ID in this file is prefixed "bul-".
@@ -95,6 +95,18 @@
   .bul-brand h1{ font-size:clamp(24px,4vw,38px); margin:0; color:var(--bul-ink); text-align:center; text-shadow:0 2px 0 rgba(0,0,0,0.4), 0 0 22px rgba(47,143,92,0.25); text-transform:uppercase; }
   .bul-brand .bul-sub{ display:block; font-family:'Crimson Text',serif; font-style:italic; font-size:14px; color:var(--bul-ink-dim); text-align:center; margin-top:2px; }
 
+  /* On narrow (portrait) phones there isn't enough width for the
+     centered rune/title group to clear the hub icon overlaid at the
+     left, so it starts overlapping the title/rune. Below this width,
+     drop the icon back to its own row above the title instead. */
+  @media (max-width:560px){
+    .bul-brand{ flex-wrap:wrap; }
+    .bul-home-row{
+      position:static; height:auto; order:-1; flex:0 0 100%;
+      margin:0 auto 10px; pointer-events:auto;
+    }
+  }
+
   .bul-aim-line{ text-align:center; max-width:640px; margin:0 auto 22px; font-family:'Crimson Text',serif; font-size:16.5px; color:var(--bul-accent-bright); font-weight:600; line-height:1.5; }
 
   .bul-start-wrap{ text-align:center; }
@@ -153,7 +165,7 @@
 
   .bul-game-layout{ display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:20px; align-items:start; }
   .bul-board-wrap{ display:flex; justify-content:center; }
-  .bul-board-frame{ position:relative; width:min(92vw, 780px); height:min(60vw, 380px); }
+  .bul-board-frame{ position:relative; width:min(100%, 780px); height:min(60vw, 380px); }
   .bul-board-frame-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   .bul-board{
     display:grid; grid-template-columns:78px repeat(9,1fr) 78px; grid-template-rows:1fr;
@@ -269,7 +281,7 @@
 
   @media (max-width: 860px){
     .bul-game-layout{ grid-template-columns:1fr; }
-    .bul-board-frame{ width:min(96vw, 620px); height:min(72vw, 320px); }
+    .bul-board-frame{ width:min(100%, 620px); height:min(72vw, 320px); }
     .bul-board{ grid-template-columns:56px repeat(9,1fr) 56px; }
     .bul-mode-grid{ grid-template-columns:1fr; }
     .bul-choice-row.bul-three{ grid-template-columns:1fr 1fr 1fr; }
@@ -286,7 +298,7 @@
   @media (max-width: 860px) and (orientation: landscape){
     .bul-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .bul-board-wrap{ align-items:center; }
-    .bul-board-frame{ width:min(58vw, 560px); height:min(78vh, 270px); }
+    .bul-board-frame{ width:min(100%, 560px); height:min(78vh, 270px); }
     .bul-board{ grid-template-columns:50px repeat(9,1fr) 50px; }
     .bul-panel{ max-height:82vh; overflow-y:auto; padding:12px; }
     .bul-mode-grid{ grid-template-columns:repeat(3,1fr); }

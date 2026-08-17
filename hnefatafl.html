@@ -79,7 +79,7 @@
   }
 
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%;}
+  html,body{margin:0;padding:0;height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%; overflow-x:hidden; }
   .hnef-app{
     background:
       radial-gradient(ellipse at 20% -10%, var(--hnef-void-2) 0%, transparent 55%),
@@ -127,6 +127,18 @@
   .hnef-brand .hnef-sub{
     display:block; font-family:'Crimson Text',serif; font-style:italic;
     font-size:14px; color:var(--hnef-parchment-dim); letter-spacing:0.02em; text-align:center; margin-top:2px;
+  }
+
+  /* On narrow (portrait) phones there isn't enough width for the
+     centered rune/title group to clear the hub icon overlaid at the
+     left, so it starts overlapping the title/rune. Below this width,
+     drop the icon back to its own row above the title instead. */
+  @media (max-width:560px){
+    .hnef-brand{ flex-wrap:wrap; }
+    .hnef-home-row{
+      position:static; height:auto; order:-1; flex:0 0 100%;
+      margin:0 auto 10px; pointer-events:auto;
+    }
   }
 
   /* ---------- start screen ---------- */
@@ -229,7 +241,7 @@
 
   /* board */
   .hnef-board-wrap{ display:flex; justify-content:center; }
-  .hnef-board-frame{ position:relative; width:min(78vw, 620px); aspect-ratio:1/1; }
+  .hnef-board-frame{ position:relative; width:min(100%, 620px); aspect-ratio:1/1; }
   .hnef-board-frame-svg{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   .hnef-board{
     display:grid; grid-template-columns:repeat(11, 1fr); grid-template-rows:repeat(11, 1fr);
@@ -327,7 +339,7 @@
 
   @media (max-width: 800px){
     .hnef-game-layout{ grid-template-columns:1fr; }
-    .hnef-board-frame{ width:min(92vw, 520px); }
+    .hnef-board-frame{ width:min(100%, 520px); }
     .hnef-mode-grid{ grid-template-columns:1fr; }
     .hnef-choice-row.hnef-three{ grid-template-columns:1fr 1fr 1fr; }
     .hnef-choice-row.hnef-four{ grid-template-columns:1fr 1fr; }
@@ -343,7 +355,7 @@
   @media (max-width: 800px) and (orientation: landscape){
     .hnef-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .hnef-board-wrap{ align-items:center; }
-    .hnef-board-frame{ width:auto; height:min(82vh, 460px); }
+    .hnef-board-frame{ width:auto; max-width:100%; height:min(82vh, 460px); }
     .hnef-panel{ max-height:82vh; overflow-y:auto; padding:12px; }
     .hnef-mode-grid{ grid-template-columns:repeat(3,1fr); }
   }
