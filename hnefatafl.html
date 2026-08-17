@@ -355,7 +355,6 @@
   @media (max-width: 800px) and (orientation: landscape){
     .hnef-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .hnef-board-wrap{ align-items:center; }
-    .hnef-board-frame{ width:min(100%, 460px, 82vh); height:auto; }
     .hnef-panel{ max-height:82vh; overflow-y:auto; padding:12px; }
     .hnef-mode-grid{ grid-template-columns:repeat(3,1fr); }
   }
@@ -1006,7 +1005,38 @@ const DEMO_SCRIPT = [
 function showScreen(id){
   document.querySelectorAll('.hnef-screen').forEach(s=>s.classList.remove('hnef-active'));
   document.getElementById(id).classList.add('hnef-active');
+  if(id==='hnef-screen-game') requestAnimationFrame(fitBoard);
 }
+
+/* Board sizing is done in JS rather than pure CSS: measuring the wrap's
+   actual rendered width directly sidesteps a real CSS gotcha where a
+   custom property holding a "%" value (correct when used for width)
+   silently resolves against the wrong axis if reused inside a height
+   calc(), producing a badly-undersized board. Measuring gives an exact
+   answer regardless of layout complexity (side panel, grid tracks, etc). */
+function fitBoard(){
+  const wrap = document.querySelector('.hnef-board-wrap');
+  const board = document.getElementById('hnef-board-frame');
+  if(!wrap || !board) return;
+  board.style.width = '';
+  board.style.height = '';
+  const availW = wrap.clientWidth;
+  if(availW <= 0) return;
+  let w = Math.min(availW, 620);
+  let h = w; // square board
+  const isLandscapeNarrow = window.matchMedia('(max-width:800px) and (orientation:landscape)').matches;
+  if(isLandscapeNarrow){
+    const hCap = Math.min(window.innerHeight * 0.82, 460);
+    if(h > hCap){
+      h = hCap;
+      w = Math.min(h, availW);
+    }
+  }
+  board.style.width = w + 'px';
+  board.style.height = h + 'px';
+}
+window.addEventListener('resize', fitBoard);
+window.addEventListener('orientationchange', ()=>setTimeout(fitBoard, 50));
 
 /* ---------- setup screen ---------- */
 let setupSide=null, setupDiff=null;

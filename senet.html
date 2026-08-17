@@ -359,7 +359,6 @@
   @media (max-width: 860px) and (orientation: landscape){
     .sen-game-layout{ grid-template-columns:minmax(0,1fr) 220px; gap:14px; }
     .sen-board-wrap{ align-items:center; }
-    .sen-board{ width:min(100%, 760px, calc(min(80vh, 460px) * 10 / 3)); height:auto; }
     .sen-panel{ max-height:80vh; overflow-y:auto; padding:12px; }
     .sen-mode-grid{ grid-template-columns:repeat(3,1fr); }
   }
@@ -514,7 +513,7 @@
     <div class="sen-game-layout">
       <div class="sen-board-wrap">
         <div class="sen-board-ornament">
-          <div class="sen-kheker-frieze"></div>
+          <div class="sen-kheker-frieze" id="sen-kheker-frieze"></div>
           <div class="sen-board-frame-outer">
             <span class="sen-board-corner sen-tl">☥</span>
             <span class="sen-board-corner sen-tr">✦</span>
@@ -911,7 +910,49 @@ const DEMO_SCRIPT = [
 function showScreen(id){
   document.querySelectorAll('.sen-screen').forEach(s=>s.classList.remove('sen-active'));
   document.getElementById(id).classList.add('sen-active');
+  if(id==='sen-screen-game') requestAnimationFrame(fitBoard);
 }
+
+/* Board sizing is done in JS rather than pure CSS: measuring the wrap's
+   actual rendered width directly sidesteps a real CSS gotcha where a
+   custom property holding a "%" value (correct when used for width)
+   silently resolves against the wrong axis if reused inside a height
+   calc(), producing a badly-undersized board. Measuring gives an exact
+   answer regardless of layout complexity (side panel, grid tracks, etc).
+
+   Senet specifically also has a padded/bordered wrapper (.sen-board-
+   frame-outer, 40px padding + 3px border each side) between the
+   measured wrap and the board itself, plus corner medallions that
+   overhang 17px past that wrapper on each side — all of that has to be
+   reserved, or the board is sized as if it had the wrap's full width to
+   itself and the frame pushes the right edge off-screen. */
+function fitBoard(){
+  const wrap = document.querySelector('.sen-board-wrap');
+  const board = document.getElementById('sen-board');
+  const frieze = document.getElementById('sen-kheker-frieze');
+  if(!wrap || !board) return;
+  board.style.width = '';
+  board.style.height = '';
+  const availW = wrap.clientWidth;
+  if(availW <= 0) return;
+  const FRAME_OVERHEAD = (40+3+17) * 2; // frame-outer padding + border + corner overhang, both sides
+  const RATIO = 10/3; // width / height
+  let w = Math.max(200, Math.min(availW - FRAME_OVERHEAD, 760));
+  let h = w / RATIO;
+  const isLandscapeNarrow = window.matchMedia('(max-width:860px) and (orientation:landscape)').matches;
+  if(isLandscapeNarrow){
+    const hCap = Math.min(window.innerHeight * 0.8, 460);
+    if(h > hCap){
+      h = hCap;
+      w = Math.min(h * RATIO, availW - FRAME_OVERHEAD);
+    }
+  }
+  board.style.width = w + 'px';
+  board.style.height = h + 'px';
+  if(frieze) frieze.style.width = w + 'px';
+}
+window.addEventListener('resize', fitBoard);
+window.addEventListener('orientationchange', ()=>setTimeout(fitBoard, 50));
 
 /* ---------- setup screen ---------- */
 let setupSide=null, setupDiff=null;
